@@ -6,13 +6,6 @@ module.exports = {
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    container: {
-      center: true,
-      padding: '24px',
-      screens: {
-        '2xl': '1200px',
-      },
-    },
     extend: {
       colors: {
         navy: {
@@ -63,15 +56,10 @@ module.exports = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        pulseGreen: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.5)' },
-          '50%': { boxShadow: '0 0 0 6px rgba(34, 197, 94, 0)' },
-        },
       },
       animation: {
         'fade-up': 'fadeUp 0.7s ease-out forwards',
         'fade-in': 'fadeIn 0.7s ease-out forwards',
-        'pulse-green': 'pulseGreen 2s ease infinite',
       },
     },
   },
