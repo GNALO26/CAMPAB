@@ -1,4 +1,3 @@
-// src/components/layout/Header.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,6 +6,15 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import { MessageCircle } from 'lucide-react'
+
+const navItems = [
+  { href: '/', label: 'Accueil' },
+  { href: '/cabinet', label: 'Le Cabinet' },
+  { href: '/expertises', label: 'Expertises' },
+  { href: '/equipe', label: 'Équipe' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+]
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -41,7 +49,7 @@ export default function Header() {
               <div className="nav__logo-img">
                 <Image
                   src="/logo.png"
-                  alt="CAMPAB - Cabinet d'Arbitrage et de Médiation"
+                  alt="CAMPAB, Cabinet d'Arbitrage et de Médiation"
                   width={48}
                   height={48}
                   className="nav__logo-circle"
@@ -56,10 +64,16 @@ export default function Header() {
             </Link>
 
             <ul className="nav__links" role="list">
-              <li><Link href="/" className={`nav__link ${pathname === '/' ? 'is-active' : ''}`}>Accueil</Link></li>
-              <li><Link href="/services" className={`nav__link ${pathname === '/services' ? 'is-active' : ''}`}>Services</Link></li>
-              <li><Link href="/expertise" className={`nav__link ${pathname === '/expertise' ? 'is-active' : ''}`}>Expertise</Link></li>
-              <li><Link href="/contact" className={`nav__link ${pathname === '/contact' ? 'is-active' : ''}`}>Contact</Link></li>
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`nav__link ${pathname === item.href ? 'is-active' : ''}`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
 
             <div className="nav__actions">
@@ -88,7 +102,7 @@ export default function Header() {
                 className="btn btn--primary btn--md hide-mobile"
                 aria-label="Prendre rendez-vous sur WhatsApp"
               >
-                <MessageCircle size={16} /> Prendre RDV
+                <MessageCircle size={16} /> Prendre rendez-vous
               </a>
               <button
                 className={`hamburger ${isOpen ? 'is-open' : ''}`}
@@ -106,10 +120,16 @@ export default function Header() {
       <div className={`mobile-menu ${isOpen ? 'is-open' : ''}`} role="dialog" aria-modal="true">
         <div className="container">
           <nav className="mobile-menu__nav">
-            <Link href="/" className="mobile-menu__link" onClick={() => setIsOpen(false)}>Accueil</Link>
-            <Link href="/services" className="mobile-menu__link" onClick={() => setIsOpen(false)}>Services</Link>
-            <Link href="/expertise" className="mobile-menu__link" onClick={() => setIsOpen(false)}>Expertise</Link>
-            <Link href="/contact" className="mobile-menu__link" onClick={() => setIsOpen(false)}>Contact</Link>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="mobile-menu__link"
+                onClick={() => setIsOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
           <div className="mobile-menu__footer">
             <div className="mobile-menu__contact">

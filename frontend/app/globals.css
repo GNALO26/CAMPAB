@@ -2027,3 +2027,72 @@ textarea.form-control {
     margin-bottom: 2px;
   }
 }
+/* ============================================================
+   DARK MODE INSPIRÉ DE FACEBOOK
+   ============================================================ */
+
+[data-theme="dark"] {
+  /* Facebook style : pas de noir pur, pas de blanc pur */
+  --bg: #18191A;
+  --bg-alt: #242526;
+  --bg-section: #242526;
+  --surface: #242526;
+  --surface-2: #3A3B3C;
+
+  /* Textes Facebook */
+  --text-900: #E4E6EB;
+  --text-700: #E4E6EB;
+  --text-500: #B0B3B8;
+  --text-300: #8A8D91;
+  --text-100: #4E4F50;
+
+  /* Bordures visibles en dark */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-md: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.22);
+
+  /* Navigation */
+  --nav-bg: rgba(24, 25, 26, 0.95);
+  --nav-border: rgba(255, 255, 255, 0.08);
+
+  /* Accent désaturé pour dark */
+  --blue: #2D88FF;
+  --blue-light: #4A9EFF;
+  --blue-pale: rgba(45, 136, 255, 0.15);
+  --blue-subtle: rgba(45, 136, 255, 0.08);
+
+  --copper: #E8B528;
+  --copper-light: #F0C64A;
+}
+
+/* En dark mode : ombres remplacées par des bordures */
+[data-theme="dark"] .card,
+[data-theme="dark"] .service-card,
+[data-theme="dark"] .contact-form-box {
+  box-shadow: none;
+  border: 1px solid var(--border-md);
+}
+
+/* En dark mode : les images décoratives sont assombries */
+[data-theme="dark"] .page-hero__video {
+  opacity: 0.25;
+  filter: saturate(0.6) brightness(0.4);
+}
+
+/* Transition fluide façon Facebook */
+html,
+body,
+.nav,
+.card,
+.service-card,
+.contact-form-box,
+.footer,
+input,
+textarea,
+select,
+button {
+  transition:
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}

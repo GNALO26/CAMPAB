@@ -1,4 +1,3 @@
-// src/components/layout/Footer.tsx
 import Link from 'next/link'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
 
@@ -11,8 +10,8 @@ export default function Footer() {
             <div className="footer__brand-name">CAMPAB</div>
             <div className="footer__brand-sub">Cotonou, Bénin</div>
             <p className="footer__brand-desc">
-              Cabinet d'Arbitrage et de Médiation Prudencia Abode Badou.
-              Expertise OHADA au service des entreprises et particuliers.
+              Cabinet d&apos;Arbitrage et de Médiation Prudencia Abode Badou.
+              Expertise OHADA au service des entreprises et des particuliers.
             </p>
           </div>
 
@@ -20,20 +19,22 @@ export default function Footer() {
             <div className="footer__col-title">Navigation</div>
             <ul className="footer__links">
               <li><Link href="/" className="footer__link">Accueil</Link></li>
-              <li><Link href="/services" className="footer__link">Services</Link></li>
-              <li><Link href="/expertise" className="footer__link">Expertise</Link></li>
-              <li><Link href="/contact" className="footer__link">Contact</Link></li>
-              <li><Link href="/rdv" className="footer__link">Prendre RDV</Link></li>
+              <li><Link href="/cabinet" className="footer__link">Le Cabinet</Link></li>
+              <li><Link href="/expertises" className="footer__link">Expertises</Link></li>
+              <li><Link href="/equipe" className="footer__link">Équipe</Link></li>
+              <li><Link href="/portfolio" className="footer__link">Portfolio</Link></li>
+              <li><Link href="/blog" className="footer__link">Blog</Link></li>
             </ul>
           </div>
 
           <div>
-            <div className="footer__col-title">Services</div>
+            <div className="footer__col-title">Ressources</div>
             <ul className="footer__links">
-              <li><Link href="/services" className="footer__link">Consultations juridiques</Link></li>
-              <li><Link href="/services" className="footer__link">Rédaction d'actes</Link></li>
-              <li><Link href="/expertise" className="footer__link">Médiation</Link></li>
-              <li><Link href="/expertise" className="footer__link">Arbitrage OHADA</Link></li>
+              <li><Link href="/arbitrage" className="footer__link">Arbitrage OHADA</Link></li>
+              <li><Link href="/mediation" className="footer__link">Médiation</Link></li>
+              <li><Link href="/contact" className="footer__link">Contact</Link></li>
+              <li><Link href="/mentions-legales" className="footer__link">Mentions légales</Link></li>
+              <li><Link href="/confidentialite" className="footer__link">Confidentialité</Link></li>
             </ul>
           </div>
 
@@ -57,7 +58,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="footer__link footer__contact">
-                  <Clock size={14} /> Lun–Ven · 8h–13h30 / 15h–20h
+                  <Clock size={14} /> Lundi au vendredi, 8h à 20h
                 </span>
               </li>
             </ul>
@@ -66,7 +67,7 @@ export default function Footer() {
 
         <div className="footer__bottom">
           <p className="footer__copy">
-            © {new Date().getFullYear()} CAMPAB · Tous droits réservés
+            © {new Date().getFullYear()} CAMPAB. Tous droits réservés.
           </p>
           <div className="footer__legal">
             <Link href="/mentions-legales" className="footer__legal-link">
@@ -74,6 +75,9 @@ export default function Footer() {
             </Link>
             <Link href="/confidentialite" className="footer__legal-link">
               Confidentialité
+            </Link>
+            <Link href="/cgu" className="footer__legal-link">
+              Conditions d&apos;utilisation
             </Link>
           </div>
         </div>
