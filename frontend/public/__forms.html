@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulaires Netlify</title>
+</head>
+<body>
+
+  <!-- Formulaire de contact -->
+  <form name="campab-contact" data-netlify="true" hidden>
+    <input type="hidden" name="form-name" value="campab-contact" />
+    <input type="text" name="prenom" />
+    <input type="text" name="nom" />
+    <input type="email" name="email" />
+    <input type="tel" name="telephone" />
+    <input type="text" name="pays" />
+    <input type="text" name="organisation" />
+    <select name="service"></select>
+    <input type="text" name="urgence" />
+    <textarea name="message"></textarea>
+    <input type="checkbox" name="consentement" />
+  </form>
+
+  <!-- Formulaire de rendez-vous -->
+  <form name="campab-rdv" data-netlify="true" hidden>
+    <input type="hidden" name="form-name" value="campab-rdv" />
+    <input type="text" name="typeService" />
+    <input type="text" name="urgence" />
+    <textarea name="description"></textarea>
+    <input type="text" name="prenom" />
+    <input type="text" name="nom" />
+    <input type="email" name="email" />
+    <input type="tel" name="telephone" />
+    <input type="text" name="organisation" />
+    <input type="text" name="pays" />
+    <input type="text" name="date" />
+    <input type="text" name="heure" />
+  </form>
+
+</body>
+</html>
