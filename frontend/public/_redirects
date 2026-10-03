@@ -1,0 +1,6 @@
+# Redirections Netlify
+/home              /              301
+/index.php         /              301
+
+# SPA fallback (si nécessaire)
+# /*                /index.html   200
