@@ -3,7 +3,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Phone, Mail, MapPin, Clock, CheckCircle } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import JsonLd from "@/components/features/JsonLd";
 
 function useRevealOnScroll() {
@@ -39,7 +46,6 @@ export default function ContactPage() {
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    // Conversion en URLSearchParams pour Netlify Forms
     const params = new URLSearchParams();
     formData.forEach((value, key) => {
       params.append(key, value.toString());
@@ -172,7 +178,11 @@ export default function ContactPage() {
                 Coordonnées
               </h2>
 
-              <div className="contact-info-item" data-reveal="up" data-delay="80">
+              <div
+                className="contact-info-item"
+                data-reveal="up"
+                data-delay="80"
+              >
                 <div className="contact-info-item__icon">
                   <Phone size={20} />
                 </div>
@@ -216,7 +226,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <div className="contact-info-item__label">Localisation</div>
-                  <div className="contact-info-item__value">Cotonou, Bénin</div>
+                  <div className="contact-info-item__value">
+                    Cotonou, Bénin
+                  </div>
                 </div>
               </div>
 
@@ -237,7 +249,7 @@ export default function ContactPage() {
                     08:00 — 13:30 / 15:00 — 20:00
                   </div>
                   <div className="contact-info-item__sub">
-                    Samedi & Dimanche : Fermé
+                    Samedi &amp; Dimanche : Fermé
                   </div>
                 </div>
               </div>
@@ -278,7 +290,7 @@ export default function ContactPage() {
                     <CheckCircle
                       size={16}
                       style={{ flexShrink: 0, marginTop: "2px" }}
-                    />{" "}
+                    />
                     Réponse sous 24 à 48 heures
                   </li>
                   <li
@@ -291,7 +303,7 @@ export default function ContactPage() {
                     <CheckCircle
                       size={16}
                       style={{ flexShrink: 0, marginTop: "2px" }}
-                    />{" "}
+                    />
                     Confidentialité absolue
                   </li>
                   <li
@@ -304,7 +316,7 @@ export default function ContactPage() {
                     <CheckCircle
                       size={16}
                       style={{ flexShrink: 0, marginTop: "2px" }}
-                    />{" "}
+                    />
                     Première évaluation sans engagement
                   </li>
                   <li
@@ -317,7 +329,7 @@ export default function ContactPage() {
                     <CheckCircle
                       size={16}
                       style={{ flexShrink: 0, marginTop: "2px" }}
-                    />{" "}
+                    />
                     Accompagnement personnalisé
                   </li>
                 </ul>
@@ -468,7 +480,9 @@ export default function ContactPage() {
                           Rédaction d&apos;actes
                         </option>
                         <option value="mediation">Médiation</option>
-                        <option value="arbitrage-ohada">Arbitrage OHADA</option>
+                        <option value="arbitrage-ohada">
+                          Arbitrage OHADA
+                        </option>
                         <option value="autre">Autre demande</option>
                       </select>
                     </div>
@@ -530,31 +544,39 @@ export default function ContactPage() {
                   >
                     {formStatus === "loading"
                       ? "Envoi en cours..."
-                      : "Envoyer le message →"}
+                      : "Envoyer le message"}
                   </button>
 
                   {formStatus === "success" && (
-                    <p
-                      style={{
-                        marginTop: "var(--sp-4)",
-                        color: "green",
-                        textAlign: "center",
-                      }}
-                    >
-                      ✅ Message envoyé avec succès. Je vous répondrai sous 48h.
-                    </p>
+                    <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 mt-4">
+                      <CheckCircle
+                        size={20}
+                        className="flex-shrink-0 mt-0.5"
+                      />
+                      <p className="text-sm">
+                        Message envoyé avec succès. Je vous répondrai sous 48h.
+                      </p>
+                    </div>
                   )}
+
                   {formStatus === "error" && (
-                    <p
-                      style={{
-                        marginTop: "var(--sp-4)",
-                        color: "red",
-                        textAlign: "center",
-                      }}
-                    >
-                      ❌ Erreur lors de l&apos;envoi. Veuillez réessayer ou
-                      m&apos;appeler directement.
-                    </p>
+                    <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 mt-4">
+                      <AlertCircle
+                        size={20}
+                        className="flex-shrink-0 mt-0.5"
+                      />
+                      <p className="text-sm">
+                        Erreur lors de l&apos;envoi. Veuillez réessayer ou
+                        m&apos;appeler directement au{" "}
+                        <a
+                          href="tel:+2290197762936"
+                          className="font-semibold underline"
+                        >
+                          01 97 76 29 36
+                        </a>
+                        .
+                      </p>
+                    </div>
                   )}
                 </form>
               </div>

@@ -3,12 +3,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  AlertCircle,
+  FileDown,
+  Clock,
+  Calendar,
+  User,
+  Mail,
+  Phone,
+  Building2,
+  Globe,
+} from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import RdvPDF from "./components/RdvPDF";
 import RdvProgress from "./components/RdvProgress";
 
-// Types
 interface RendezVousData {
   typeService: string;
   urgence: string;
@@ -78,9 +90,6 @@ export default function RdvPage() {
     return true;
   };
 
-  // ============================================================
-  // SOUMISSION VERS NETLIFY FORMS
-  // ============================================================
   const handleConfirm = async () => {
     setIsSubmitting(true);
     setSubmitStatus("idle");
@@ -159,9 +168,9 @@ export default function RdvPage() {
               <label className="form-label">Niveau d&apos;urgence</label>
               <div className="flex gap-3 flex-wrap">
                 {[
-                  { value: "normale", label: "🟢 Normale" },
-                  { value: "elevee", label: "🟡 Élevée" },
-                  { value: "critique", label: "🔴 Critique" },
+                  { value: "normale", label: "Normale" },
+                  { value: "elevee", label: "Élevée" },
+                  { value: "critique", label: "Critique" },
                 ].map((option) => (
                   <label
                     key={option.value}
@@ -179,6 +188,15 @@ export default function RdvPage() {
                       onChange={(e) => handleChange("urgence", e.target.value)}
                       className="hidden"
                     />
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        option.value === "normale"
+                          ? "bg-green-500"
+                          : option.value === "elevee"
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                      }`}
+                    ></span>
                     {option.label}
                   </label>
                 ))}
@@ -328,61 +346,108 @@ export default function RdvPage() {
             </p>
 
             <div className="rounded-xl border border-line bg-sky/30 p-6">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <div className="text-xs text-ink-soft">Service</div>
-                  <div className="font-semibold">
-                    {formData.typeService === "consultation" &&
-                      "Consultation juridique"}
-                    {formData.typeService === "arbitrage" &&
-                      "Arbitrage OHADA"}
-                    {formData.typeService === "mediation" && "Médiation"}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex items-start gap-3">
+                  <Clock size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Service</div>
+                    <div className="font-semibold">
+                      {formData.typeService === "consultation" &&
+                        "Consultation juridique"}
+                      {formData.typeService === "arbitrage" &&
+                        "Arbitrage OHADA"}
+                      {formData.typeService === "mediation" && "Médiation"}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Urgence</div>
-                  <div className="font-semibold">
-                    {formData.urgence === "normale" && "🟢 Normale"}
-                    {formData.urgence === "elevee" && "🟡 Élevée"}
-                    {formData.urgence === "critique" && "🔴 Critique"}
+
+                <div className="flex items-start gap-3">
+                  <AlertCircle
+                    size={18}
+                    className="text-olive flex-shrink-0 mt-1"
+                  />
+                  <div>
+                    <div className="text-xs text-ink-soft">Urgence</div>
+                    <div className="font-semibold capitalize">
+                      {formData.urgence}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Nom complet</div>
-                  <div className="font-semibold">
-                    {formData.prenom} {formData.nom}
+
+                <div className="flex items-start gap-3">
+                  <User size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Nom complet</div>
+                    <div className="font-semibold">
+                      {formData.prenom} {formData.nom}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Email</div>
-                  <div className="font-semibold">{formData.email}</div>
+
+                <div className="flex items-start gap-3">
+                  <Mail size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Email</div>
+                    <div className="font-semibold">{formData.email}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Téléphone</div>
-                  <div className="font-semibold">{formData.telephone}</div>
+
+                <div className="flex items-start gap-3">
+                  <Phone size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Téléphone</div>
+                    <div className="font-semibold">{formData.telephone}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Date</div>
-                  <div className="font-semibold">{formData.date}</div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar
+                    size={18}
+                    className="text-olive flex-shrink-0 mt-1"
+                  />
+                  <div>
+                    <div className="text-xs text-ink-soft">Date</div>
+                    <div className="font-semibold">{formData.date}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Heure</div>
-                  <div className="font-semibold">{formData.heure}</div>
+
+                <div className="flex items-start gap-3">
+                  <Clock size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Heure</div>
+                    <div className="font-semibold">{formData.heure}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Pays</div>
-                  <div className="font-semibold">{formData.pays}</div>
+
+                <div className="flex items-start gap-3">
+                  <Globe size={18} className="text-olive flex-shrink-0 mt-1" />
+                  <div>
+                    <div className="text-xs text-ink-soft">Pays</div>
+                    <div className="font-semibold capitalize">
+                      {formData.pays}
+                    </div>
+                  </div>
                 </div>
               </div>
+
               {formData.organisation && (
-                <div className="mt-3 border-t border-line pt-3">
-                  <div className="text-xs text-ink-soft">Organisation</div>
-                  <div className="font-semibold">{formData.organisation}</div>
+                <div className="mt-4 flex items-start gap-3 border-t border-line pt-4">
+                  <Building2
+                    size={18}
+                    className="text-olive flex-shrink-0 mt-1"
+                  />
+                  <div>
+                    <div className="text-xs text-ink-soft">Organisation</div>
+                    <div className="font-semibold">
+                      {formData.organisation}
+                    </div>
+                  </div>
                 </div>
               )}
+
               {formData.description && (
-                <div className="mt-3 border-t border-line pt-3">
-                  <div className="text-xs text-ink-soft">
+                <div className="mt-4 border-t border-line pt-4">
+                  <div className="text-xs text-ink-soft mb-1">
                     Description du litige
                   </div>
                   <div className="text-sm">{formData.description}</div>
@@ -398,7 +463,10 @@ export default function RdvPage() {
               >
                 {({ loading }) => (
                   <>
-                    {loading ? "Préparation du PDF..." : "📄 Télécharger le PDF"}
+                    <FileDown size={16} className="mr-2" />
+                    {loading
+                      ? "Préparation du PDF..."
+                      : "Télécharger le PDF"}
                   </>
                 )}
               </PDFDownloadLink>
@@ -409,29 +477,43 @@ export default function RdvPage() {
                 className="btn btn--blue btn--lg"
                 disabled={isSubmitting || submitStatus === "success"}
               >
-                {isSubmitting
-                  ? "Envoi en cours..."
-                  : submitStatus === "success"
-                  ? "✅ Rendez-vous envoyé"
-                  : "Confirmer le rendez-vous →"}
+                {isSubmitting ? (
+                  "Envoi en cours..."
+                ) : submitStatus === "success" ? (
+                  <>
+                    <Check size={16} className="mr-2" />
+                    Rendez-vous envoyé
+                  </>
+                ) : (
+                  "Confirmer le rendez-vous"
+                )}
               </button>
             </div>
 
             {submitStatus === "success" && (
-              <div className="rounded-lg bg-green-50 p-4 text-center text-green-800 border border-green-200">
-                ✅ Votre demande de rendez-vous a bien été envoyée. Nous vous
-                contacterons dans les 24 à 48 heures.
+              <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+                <Check size={20} className="flex-shrink-0 mt-0.5" />
+                <p className="text-sm">
+                  Votre demande de rendez-vous a bien été envoyée. Nous vous
+                  contacterons dans les 24 à 48 heures.
+                </p>
               </div>
             )}
 
             {submitStatus === "error" && (
-              <div className="rounded-lg bg-red-50 p-4 text-center text-red-800 border border-red-200">
-                ❌ Erreur lors de l&apos;envoi. Veuillez réessayer ou nous
-                contacter directement au{" "}
-                <a href="tel:+2290197762936" className="underline font-semibold">
-                  01 97 76 29 36
-                </a>
-                .
+              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+                <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+                <p className="text-sm">
+                  Erreur lors de l&apos;envoi. Veuillez réessayer ou nous
+                  contacter directement au{" "}
+                  <a
+                    href="tel:+2290197762936"
+                    className="font-semibold underline"
+                  >
+                    01 97 76 29 36
+                  </a>
+                  .
+                </p>
               </div>
             )}
           </div>
