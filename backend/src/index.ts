@@ -1,5 +1,5 @@
 // backend/src/index.ts
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -50,7 +50,7 @@ app.use(
 // ============================================================
 // HEALTHCHECK
 // ============================================================
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     service: "CAMPAB API",
@@ -80,7 +80,7 @@ app.use("/api", routes);
 // ============================================================
 // 404
 // ============================================================
-app.use((_req, res) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Route introuvable" });
 });
 

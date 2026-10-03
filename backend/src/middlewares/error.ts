@@ -1,5 +1,5 @@
 ﻿// backend/src/middlewares/error.ts
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 
 export function errorHandler(
   err: any,
@@ -9,7 +9,6 @@ export function errorHandler(
 ): void {
   console.error("❌ Erreur :", err);
 
-  // Erreur Mongoose - validation
   if (err.name === "ValidationError") {
     res.status(400).json({
       error: "Erreur de validation",
@@ -18,7 +17,6 @@ export function errorHandler(
     return;
   }
 
-  // Erreur Mongoose - duplicate key
   if (err.code === 11000) {
     res.status(409).json({
       error: "Doublon détecté",
@@ -27,7 +25,6 @@ export function errorHandler(
     return;
   }
 
-  // Erreur JWT
   if (err.name === "JsonWebTokenError") {
     res.status(401).json({ error: "Token invalide" });
     return;
@@ -38,7 +35,6 @@ export function errorHandler(
     return;
   }
 
-  // Erreur personnalisée avec status
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Erreur serveur interne";
 

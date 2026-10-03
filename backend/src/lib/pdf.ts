@@ -8,7 +8,7 @@ export interface PdfData {
   footer?: string;
 }
 
-export async function generatePdf(data: PdfData): Promise<Buffer> {
+export function generatePdf(data: PdfData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: "A4", margin: 50 });

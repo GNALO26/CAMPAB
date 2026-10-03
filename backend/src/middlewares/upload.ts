@@ -19,7 +19,9 @@ const portfolioDir = path.join(uploadDir, "portfolio");
 
 // Configuration de stockage
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const ext = path.extname(file.originalname);
@@ -29,7 +31,7 @@ const storage = multer.diskStorage({
 
 // Filtre pour n'accepter que les images
 const fileFilter = (
-  _req: any,
+  _req: unknown,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
@@ -45,10 +47,9 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024, // MB en bytes
+    fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024,
   },
 });
 
-// Middlewares spécifiques
 export const uploadArticleImage = upload.single("image");
 export const uploadPortfolioImage = upload.single("image");

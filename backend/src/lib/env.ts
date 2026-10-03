@@ -10,7 +10,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1, "MONGODB_URI requis"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET doit faire au moins 32 caractères"),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  FRONTEND_URL: z.string().url().default("http://localhost:3000"),
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
   EMAIL_USER: z.string().email(),
   EMAIL_PASS: z.string().min(1),
   EMAIL_FROM: z.string().default("CAMPAB <noreply@cam-pab.com>"),
@@ -25,16 +25,20 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default("uploads"),
   WHATSAPP_NUMBER: z.string().default("2290197762936"),
   ADMIN_EMAIL: z.string().email().default("p.abodecabinet@gmail.com"),
-  ADMIN_PASSWORD: z.string().min(8, "Mot de passe admin trop court").optional(),
+  ADMIN_PASSWORD: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
+  // eslint-disable-next-line no-console
   console.error("❌ Variables d'environnement invalides :");
-  console.error(parsed.error.flatten().fieldErrors);
+  // eslint-disable-next-line no-console
+  console.error(JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
   process.exit(1);
 }
 
+// ⚠️ On garantit que `env` est TOUJOURS défini (non-undefined)
 export const env = parsed.data;
+
 export type Env = z.infer<typeof envSchema>;

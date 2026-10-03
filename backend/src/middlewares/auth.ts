@@ -1,5 +1,5 @@
 ﻿// backend/src/middlewares/auth.ts
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../lib/env.js";
 
@@ -29,7 +29,8 @@ export function requireAuth(
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     next();
-  } catch (error) {
+    return;
+  } catch {
     res.status(401).json({ error: "Token invalide ou expiré" });
     return;
   }
