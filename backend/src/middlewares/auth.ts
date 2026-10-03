@@ -1,21 +1,36 @@
-﻿import { Request, Response, NextFunction } from "express";
+﻿// backend/src/middlewares/auth.ts
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../lib/env";
+import { env } from "../lib/env.js";
 
-export interface AuthPayload { id: string; email: string; role: string; }
-export interface AuthRequest extends Request { admin?: AuthPayload; }
+export interface AuthRequest extends Request {
+  userId?: string;
+  userEmail?: string;
+}
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Token manquant" });
-    return;
-  }
+export function requireAuth(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void {
   try {
-    const payload = jwt.verify(header.slice(7), env.JWT_SECRET) as AuthPayload;
-    req.admin = payload;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Token manquant" });
+      return;
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+      userId: string;
+      email: string;
+    };
+
+    req.userId = decoded.userId;
+    req.userEmail = decoded.email;
     next();
-  } catch {
+  } catch (error) {
     res.status(401).json({ error: "Token invalide ou expiré" });
+    return;
   }
 }

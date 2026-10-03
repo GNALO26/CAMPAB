@@ -1,83 +1,92 @@
 // backend/src/index.ts
-import express from 'express'
-import cors from 'cors'
-import helmet from 'helmet'
-import dotenv from 'dotenv'
-import rateLimit from 'express-rate-limit'
-import mongoose from 'mongoose'
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import path from "path";
+import { env } from "./lib/env.js";
+import routes from "./routes/index.js";
+import { errorHandler } from "./middlewares/error.js";
+import { publicFormLimiter, adminLimiter } from "./middlewares/rateLimit.js";
 
-dotenv.config()
-
-const app = express()
-const PORT = process.env.PORT || 10000
-
-// ============================================================
-// MIDDLEWARES
-// ============================================================
-app.use(helmet())
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://cam-pab.com',
-    'https://www.cam-pab.com',
-  ],
-  credentials: true,
-}))
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Trop de requêtes, veuillez réessayer plus tard.',
-})
-app.use('/api/', limiter)
+const app = express();
 
 // ============================================================
-// HEALTH CHECK
+// MIDDLEWARES DE SÉCURITÉ
 // ============================================================
-app.get('/health', (_, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV,
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
   })
-})
+);
+
+app.use(
+  cors({
+    origin: [
+      env.FRONTEND_URL,
+      "https://cam-pab.com",
+      "https://www.cam-pab.com",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
 
 // ============================================================
-// ROUTES (à compléter selon vos besoins)
+// FICHIERS STATIQUES (uploads)
 // ============================================================
-// app.use('/api/portfolio', portfolioRoutes)
-// app.use('/api/articles', articleRoutes)
-// app.use('/api/upload', uploadRoutes)
-// app.use('/api/auth', authRoutes)
+app.use(
+  "/uploads",
+  express.static(path.resolve(process.cwd(), "uploads"), {
+    maxAge: "7d",
+    immutable: true,
+  })
+);
 
 // ============================================================
-// ERREUR 404
+// HEALTHCHECK
 // ============================================================
-app.use((_, res) => {
-  res.status(404).json({ error: 'Route non trouvée' })
-})
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "CAMPAB API",
+    env: env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // ============================================================
-// CONNEXION MONGODB + DÉMARRAGE
+// RATE LIMITING
 // ============================================================
-async function start() {
-  try {
-    if (process.env.MONGODB_URI) {
-      await mongoose.connect(process.env.MONGODB_URI)
-      console.log('✅ MongoDB connecté')
-    }
+app.use("/api/auth", adminLimiter);
+app.use("/api/contact", publicFormLimiter);
+app.use("/api/appointments", (req, res, next) => {
+  if (req.method === "POST") return publicFormLimiter(req, res, next);
+  return adminLimiter(req, res, next);
+});
+app.use("/api/articles", adminLimiter);
+app.use("/api/portfolio", adminLimiter);
+app.use("/api/upload", adminLimiter);
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Serveur démarré sur le port ${PORT}`)
-      console.log(`🌍 Environnement : ${process.env.NODE_ENV || 'development'}`)
-    })
-  } catch (error) {
-    console.error('❌ Erreur au démarrage :', error)
-    process.exit(1)
-  }
-}
+// ============================================================
+// ROUTES API
+// ============================================================
+app.use("/api", routes);
 
-start()
+// ============================================================
+// 404
+// ============================================================
+app.use((_req, res) => {
+  res.status(404).json({ error: "Route introuvable" });
+});
+
+// ============================================================
+// GESTION D'ERREURS
+// ============================================================
+app.use(errorHandler);
+
+export default app;

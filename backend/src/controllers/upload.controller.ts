@@ -1,27 +1,38 @@
-﻿import { Request, Response } from "express";
+﻿// backend/src/controllers/upload.controller.ts
+import { Request, Response, NextFunction } from "express";
+import path from "path";
+import { env } from "../lib/env.js";
 
-function buildUrl(req: Request, folder: string, filename: string): string {
-  const proto = req.protocol;
-  const host = req.get("host");
-  return `${proto}://${host}/uploads/${folder}/${filename}`;
+export async function uploadArticleImageHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucune image fournie" });
+    }
+
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    res.json({ url, filename: req.file.filename });
+  } catch (error) {
+    next(error);
+  }
 }
 
-export async function uploadArticleImageHandler(req: Request, res: Response): Promise<void> {
-  if (!req.file) { res.status(400).json({ error: "Aucun fichier fourni" }); return; }
-  res.status(201).json({
-    ok: true,
-    url: buildUrl(req, "articles", req.file.filename),
-    filename: req.file.filename,
-    size: req.file.size,
-  });
-}
+export async function uploadPortfolioImageHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucune image fournie" });
+    }
 
-export async function uploadPortfolioImageHandler(req: Request, res: Response): Promise<void> {
-  if (!req.file) { res.status(400).json({ error: "Aucun fichier fourni" }); return; }
-  res.status(201).json({
-    ok: true,
-    url: buildUrl(req, "portfolio", req.file.filename),
-    filename: req.file.filename,
-    size: req.file.size,
-  });
+    const url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    res.json({ url, filename: req.file.filename });
+  } catch (error) {
+    next(error);
+  }
 }

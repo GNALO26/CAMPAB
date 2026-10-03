@@ -1,46 +1,89 @@
-﻿import { Request, Response } from "express";
-import { z } from "zod";
-import { prisma } from "../lib/prisma";
+﻿// backend/src/controllers/portfolio.controller.ts
+import { Request, Response, NextFunction } from "express";
+import Portfolio from "../models/Portfolio.js";
 
-const portfolioSchema = z.object({
-  title: z.string().min(2).max(200),
-  description: z.string().min(10).max(2000),
-  imageUrl: z.string().optional().nullable(),
-  link: z.string().url().optional().nullable(),
-  category: z.enum(["these", "projet", "publication", "distinction"]),
-  order: z.coerce.number().int().default(0),
-});
-
-// ==== PUBLIC ====
-export async function listPortfolio(req: Request, res: Response): Promise<void> {
-  const category = typeof req.query.category === "string" ? req.query.category : undefined;
-  const items = await prisma.portfolioItem.findMany({
-    where: category ? { category } : {},
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-  });
-  res.json(items);
+export async function listPortfolio(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const items = await Portfolio.find().sort({ order: 1, createdAt: -1 });
+    res.json(items);
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }
 
-export async function getPortfolioItem(req: Request, res: Response): Promise<void> {
-  const item = await prisma.portfolioItem.findUnique({ where: { id: req.params.id } });
-  if (!item) { res.status(404).json({ error: "Élément introuvable" }); return; }
-  res.json(item);
+export async function getPortfolioItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const item = await Portfolio.findById(req.params.id);
+    if (!item) {
+      res.status(404).json({ error: "Élément introuvable" });
+      return;
+    }
+    res.json(item);
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }
 
-// ==== ADMIN ====
-export async function createPortfolioItem(req: Request, res: Response): Promise<void> {
-  const data = portfolioSchema.parse(req.body);
-  const item = await prisma.portfolioItem.create({ data });
-  res.status(201).json(item);
+export async function createPortfolioItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const item = await Portfolio.create(req.body);
+    res.status(201).json(item);
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }
 
-export async function updatePortfolioItem(req: Request, res: Response): Promise<void> {
-  const data = portfolioSchema.partial().parse(req.body);
-  const item = await prisma.portfolioItem.update({ where: { id: req.params.id }, data });
-  res.json(item);
+export async function updatePortfolioItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const item = await Portfolio.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!item) {
+      res.status(404).json({ error: "Élément introuvable" });
+      return;
+    }
+    res.json(item);
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }
 
-export async function deletePortfolioItem(req: Request, res: Response): Promise<void> {
-  await prisma.portfolioItem.delete({ where: { id: req.params.id } });
-  res.status(204).end();
+export async function deletePortfolioItem(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    await Portfolio.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }

@@ -1,34 +1,78 @@
-﻿import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
+﻿// backend/src/controllers/auth.controller.ts
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { z } from "zod";
-import { prisma } from "../lib/prisma";
-import { env } from "../lib/env";
+import User from "../models/User.js";
+import { env } from "../lib/env.js";
+import { AuthRequest } from "../middlewares/auth.js";
 
-const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
+export async function login(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { email, password } = req.body;
 
-export async function login(req: Request, res: Response): Promise<void> {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Email ou mot de passe invalide" }); return; }
-  const { email, password } = parsed.data;
-  const admin = await prisma.admin.findUnique({ where: { email } });
-  if (!admin) { res.status(401).json({ error: "Identifiants incorrects" }); return; }
-  const ok = await bcrypt.compare(password, admin.password);
-  if (!ok) { res.status(401).json({ error: "Identifiants incorrects" }); return; }
-  const token = jwt.sign(
-    { id: admin.id, email: admin.email, role: admin.role },
-    env.JWT_SECRET,
-    { expiresIn: env.JWT_EXPIRES_IN }
-  );
-  res.json({ token, admin: { id: admin.id, email: admin.email, name: admin.name, role: admin.role } });
+    if (!email || !password) {
+      res.status(400).json({ error: "Email et mot de passe requis" });
+      return;
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      res.status(401).json({ error: "Identifiants invalides" });
+      return;
+    }
+
+    const isValid = await user.comparePassword(password);
+    if (!isValid) {
+      res.status(401).json({ error: "Identifiants invalides" });
+      return;
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      env.JWT_SECRET,
+      { expiresIn: env.JWT_EXPIRES_IN as any }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }
 
-export async function me(req: Request, res: Response): Promise<void> {
-  const anyReq = req as Request & { admin?: { id: string } };
-  if (!anyReq.admin) { res.status(401).json({ error: "Non authentifié" }); return; }
-  const admin = await prisma.admin.findUnique({
-    where: { id: anyReq.admin.id },
-    select: { id: true, email: true, name: true, role: true },
-  });
-  res.json(admin);
+export async function me(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ error: "Utilisateur introuvable" });
+      return;
+    }
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
 }

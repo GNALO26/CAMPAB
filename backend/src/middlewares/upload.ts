@@ -1,45 +1,54 @@
-﻿import multer from "multer";
+﻿// backend/src/middlewares/upload.ts
+import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { Request } from "express";
+import { env } from "../lib/env.js";
 
-const UPLOAD_ROOT = path.resolve(process.cwd(), "uploads");
+// Créer le dossier uploads s'il n'existe pas
+const uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-function ensureDir(dir: string) {
+const articleDir = path.join(uploadDir, "articles");
+const portfolioDir = path.join(uploadDir, "portfolio");
+
+[articleDir, portfolioDir].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
+});
 
-function storageFor(folder: "articles" | "portfolio") {
-  const dest = path.join(UPLOAD_ROOT, folder);
-  ensureDir(dest);
+// Configuration de stockage
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${ext}`);
+  },
+});
 
-  return multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, dest),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const safe = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
-      cb(null, safe);
-    },
-  });
-}
+// Filtre pour n'accepter que les images
+const fileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Format d'image non supporté. Utilisez JPG, PNG, WebP ou AVIF."));
+  }
+};
 
-const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-
-function fileFilter(_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) {
-  if (ALLOWED.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Format d'image non supporté (JPEG, PNG, WebP ou AVIF uniquement)."));
-}
-
-const MAX_SIZE = Number(process.env.MAX_FILE_SIZE_MB || 5) * 1024 * 1024;
-
-export const uploadArticleImage = multer({
-  storage: storageFor("articles"),
+const upload = multer({
+  storage,
   fileFilter,
-  limits: { fileSize: MAX_SIZE },
-}).single("image");
+  limits: {
+    fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024, // MB en bytes
+  },
+});
 
-export const uploadPortfolioImage = multer({
-  storage: storageFor("portfolio"),
-  fileFilter,
-  limits: { fileSize: MAX_SIZE },
-}).single("image");
+// Middlewares spécifiques
+export const uploadArticleImage = upload.single("image");
+export const uploadPortfolioImage = upload.single("image");
