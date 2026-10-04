@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ['class', '[data-theme="dark"]'],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
@@ -33,10 +32,21 @@ module.exports = {
           DEFAULT: '#D8E0E4',
           strong: '#B8C4CB',
         },
+        /* Palette sombre inspirée de Facebook */
+        fb: {
+          bg: '#18191A',
+          surface: '#242526',
+          elevated: '#3A3B3C',
+          border: '#3E4042',
+          text: '#E4E6EB',
+          muted: '#B0B3B8',
+          accent: '#2D88FF',
+          'accent-hover': '#4A9EFF',
+        },
       },
       fontFamily: {
-        sans: ['var(--font-body)', 'Inter', 'sans-serif'],
-        serif: ['var(--font-display)', 'Cormorant Garamond', 'serif'],
+        sans: ['var(--font-body)', 'Inter', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-display)', 'Cormorant Garamond', 'Georgia', 'serif'],
       },
       borderRadius: {
         card: '12px',
@@ -56,12 +66,26 @@ module.exports = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
+        pulseGreen: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.5)' },
+          '50%': { boxShadow: '0 0 0 6px rgba(34, 197, 94, 0)' },
+        },
+        cursorBlink: {
+          '50%': { borderColor: 'transparent' },
+        },
       },
       animation: {
         'fade-up': 'fadeUp 0.7s ease-out forwards',
         'fade-in': 'fadeIn 0.7s ease-out forwards',
+        marquee: 'marquee 28s linear infinite',
+        'pulse-green': 'pulseGreen 2s ease infinite',
+        'cursor-blink': 'cursorBlink 0.85s step-end infinite',
       },
     },
   },
   plugins: [],
-}
+};
