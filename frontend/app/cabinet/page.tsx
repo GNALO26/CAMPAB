@@ -75,9 +75,13 @@ const parcours = [
 ]
 
 export default function CabinetPage() {
+  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
+    'Bonjour, je souhaite prendre rendez-vous avec le cabinet.',
+  )}`
+
   return (
     <>
-      {/* En-tête de page */}
+      {/* En-tête */}
       <section className="page-header" aria-labelledby="cabinet-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -103,12 +107,12 @@ export default function CabinetPage() {
       <section className="section">
         <div className="container">
           <div
+            className="lg:grid-cols-2"
             style={{
               display: 'grid',
               gap: 'var(--sp-12)',
               alignItems: 'center',
             }}
-            className="lg:grid-cols-2"
           >
             <div
               style={{
@@ -156,7 +160,7 @@ export default function CabinetPage() {
                 l’organisation.
               </p>
               <div style={{ marginTop: 'var(--sp-8)' }}>
-                <Button href="/contact" variant="primary">
+                <Button href="/rdv" variant="primary">
                   Prendre rendez-vous
                 </Button>
               </div>
@@ -199,7 +203,10 @@ export default function CabinetPage() {
                   >
                     <Icon size={20} aria-hidden="true" />
                   </div>
-                  <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                  <h3
+                    className="service-card__title"
+                    style={{ fontSize: 'var(--text-lg)' }}
+                  >
                     {engagement.title}
                   </h3>
                   <p className="service-card__desc">{engagement.desc}</p>
@@ -230,12 +237,19 @@ export default function CabinetPage() {
             }}
           >
             {parcours.map((item) => (
-              <div key={`${item.periode}-${item.poste}`} className="timeline-item" style={{ gridTemplateColumns: '1fr', paddingLeft: 'var(--sp-8)', paddingBottom: 0 }}>
+              <div
+                key={`${item.periode}-${item.poste}`}
+                style={{
+                  position: 'relative',
+                  paddingLeft: 'var(--sp-8)',
+                  borderLeft: '2px solid var(--border-md)',
+                }}
+              >
                 <span
                   aria-hidden="true"
                   style={{
                     position: 'absolute',
-                    left: -4,
+                    left: -7,
                     top: 6,
                     width: 12,
                     height: 12,
@@ -275,7 +289,13 @@ export default function CabinetPage() {
                 >
                   {item.lieu}
                 </p>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75 }}>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-500)',
+                    lineHeight: 1.75,
+                  }}
+                >
                   {item.description}
                 </p>
               </div>
@@ -294,15 +314,38 @@ export default function CabinetPage() {
               <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 3rem)' }}>
                 Besoin d’un accompagnement juridique ?
               </h2>
-              <p style={{ marginTop: 'var(--sp-5)', color: 'rgba(255,255,255,0.8)', maxWidth: '44ch', marginInline: 'auto' }}>
+              <p
+                style={{
+                  marginTop: 'var(--sp-5)',
+                  color: 'rgba(255,255,255,0.85)',
+                  maxWidth: '46ch',
+                  marginInline: 'auto',
+                }}
+              >
                 Que vous soyez une entreprise, une institution ou un particulier,
                 nous vous aidons à trouver la solution la plus adaptée à votre
                 situation.
               </p>
-              <div style={{ marginTop: 'var(--sp-8)' }}>
-                <Button href="/contact" variant="olive" size="lg">
+              <div
+                style={{
+                  marginTop: 'var(--sp-8)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--sp-4)',
+                  justifyContent: 'center',
+                }}
+              >
+                <Button href="/rdv" variant="olive" size="lg">
                   Prendre rendez-vous
                 </Button>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--outline-white btn--lg"
+                >
+                  Discuter sur WhatsApp
+                </a>
               </div>
             </div>
           </div>

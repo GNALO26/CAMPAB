@@ -6,9 +6,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
+  CalendarDays,
   Mail,
   MapPin,
-  MessageCircle,
   Moon,
   Phone,
   Sun,
@@ -23,30 +23,24 @@ export default function Header() {
   const pathname = usePathname()
   const { toggleTheme } = useTheme()
 
-  /* Ferme le menu à chaque changement de route */
   useEffect(() => {
     setIsOpen(false)
   }, [pathname])
 
-  /* Verrouille le scroll, gère Échap */
   useEffect(() => {
     if (!isOpen) return
-
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false)
     }
     window.addEventListener('keydown', onKeyDown)
-
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [isOpen])
 
-  /* État de scroll pour la navbar */
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8)
     onScroll()
@@ -55,7 +49,7 @@ export default function Header() {
   }, [])
 
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
-    'Bonjour, je souhaite prendre rendez-vous avec le cabinet.',
+    'Bonjour, je souhaite obtenir des informations sur les services du cabinet.',
   )}`
 
   const isActive = (href: string) => {
@@ -85,7 +79,9 @@ export default function Header() {
               </div>
               <div className="nav__logo-text">
                 <span className="nav__logo-name">{site.sigle}</span>
-                <span className="nav__logo-sub">{site.address.city}, {site.address.country}</span>
+                <span className="nav__logo-sub">
+                  {site.address.city}, {site.address.country}
+                </span>
               </div>
             </Link>
 
@@ -114,16 +110,14 @@ export default function Header() {
                 <Sun className="icon-sun" size={18} aria-hidden="true" />
               </button>
 
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/rdv"
                 className="btn btn--primary btn--md hidden lg:inline-flex"
-                aria-label="Prendre rendez-vous sur WhatsApp"
+                aria-label="Prendre rendez-vous via le formulaire"
               >
-                <MessageCircle size={16} aria-hidden="true" />
+                <CalendarDays size={16} aria-hidden="true" />
                 <span>Prendre rendez-vous</span>
-              </a>
+              </Link>
 
               <button
                 type="button"
@@ -131,7 +125,7 @@ export default function Header() {
                 aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
                 aria-expanded={isOpen}
                 aria-controls="mobile-menu"
-                onClick={() => setIsOpen((value) => !value)}
+                onClick={() => setIsOpen((v) => !v)}
               >
                 <span aria-hidden="true" />
                 <span aria-hidden="true" />
@@ -190,15 +184,32 @@ export default function Header() {
               </span>
             </div>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn--primary btn--md mobile-menu__cta"
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--sp-3)',
+                marginTop: 'var(--sp-6)',
+              }}
             >
-              <MessageCircle size={16} aria-hidden="true" />
-              <span>Prendre rendez-vous</span>
-            </a>
+              <Link
+                href="/rdv"
+                className="btn btn--primary btn--md"
+                onClick={() => setIsOpen(false)}
+              >
+                <CalendarDays size={16} aria-hidden="true" />
+                <span>Prendre rendez-vous</span>
+              </Link>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn--outline btn--md"
+                onClick={() => setIsOpen(false)}
+              >
+                <span>Discuter sur WhatsApp</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

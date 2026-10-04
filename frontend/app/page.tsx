@@ -1,6 +1,5 @@
 ﻿// app/page.tsx
 import Image from 'next/image'
-import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -9,6 +8,10 @@ import StatsCounter from '@/components/features/StatsCounter'
 import { site, expertises, valeurs } from '@/lib/site'
 
 export default function HomePage() {
+  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
+    'Bonjour, je souhaite obtenir des informations sur les services du cabinet.',
+  )}`
+
   return (
     <>
       {/* ============================================================
@@ -40,13 +43,13 @@ export default function HomePage() {
           </h1>
 
           <p className="page-hero__desc">
-            {site.signature} Le Cabinet CAMPAB accompagne les entreprises et les particuliers
-            en médiation, en arbitrage OHADA et en conseil juridique, avec rigueur,
-            discrétion et proximité.
+            {site.signature} Le Cabinet CAMPAB accompagne les entreprises et les
+            particuliers en médiation, en arbitrage OHADA et en conseil
+            juridique, avec rigueur, discrétion et proximité.
           </p>
 
           <div className="page-hero__cta">
-            <Button href="/contact" size="lg">
+            <Button href="/rdv" size="lg">
               Prendre rendez-vous
             </Button>
             <Button href="/cabinet" variant="outline-white" size="lg">
@@ -81,7 +84,16 @@ export default function HomePage() {
               <span className="photo-card__status-dot" aria-hidden="true" />
               <div>
                 <p className="photo-card__label" style={{ margin: 0 }}>Disponible</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-900)', margin: 0, fontWeight: 600 }}>Sètondji Prudencia ABODE</p>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-900)',
+                    margin: 0,
+                    fontWeight: 600,
+                  }}
+                >
+                  Sètondji Prudencia ABODE
+                </p>
               </div>
             </div>
           </div>
@@ -101,9 +113,25 @@ export default function HomePage() {
           PRÉSENTATION DU CABINET
           ============================================================ */}
       <section className="section">
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-12)' }}>
-          <div style={{ display: 'grid', gap: 'var(--sp-14)', alignItems: 'center' }} className="lg:grid-cols-2">
-            <div style={{ position: 'relative', aspectRatio: '5 / 4', borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div className="container">
+          <div
+            className="lg:grid-cols-2"
+            style={{
+              display: 'grid',
+              gap: 'var(--sp-14)',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                aspectRatio: '5 / 4',
+                borderRadius: 'var(--r-lg)',
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-card)',
+              }}
+            >
               <Image
                 src="/images/cabinet.jpg"
                 alt="Locaux du Cabinet CAMPAB à Cotonou"
@@ -120,16 +148,20 @@ export default function HomePage() {
                 title="Un accompagnement humain, une rigueur juridique."
               />
               <p style={{ marginTop: 'var(--sp-6)' }}>
-                Le Cabinet CAMPAB est un cabinet juridique établi à Cotonou, dédié au conseil,
-                à la médiation et à l’arbitrage. Nous croyons qu’un conflit peut devenir une
-                opportunité lorsqu’il est traité avec méthode, écoute et intégrité.
+                Le Cabinet CAMPAB est un cabinet juridique établi à Cotonou,
+                dédié au conseil, à la médiation et à l’arbitrage. Nous croyons
+                qu’un conflit peut devenir une opportunité lorsqu’il est traité
+                avec méthode, écoute et intégrité.
               </p>
               <p style={{ marginTop: 'var(--sp-4)' }}>
-                Notre approche conjugue la précision du droit OHADA et la proximité d’une relation
-                de confiance, afin de transformer durablement les litiges en solutions.
+                Notre approche conjugue la précision du droit OHADA et la
+                proximité d’une relation de confiance, afin de transformer
+                durablement les litiges en solutions.
               </p>
               <div style={{ marginTop: 'var(--sp-8)' }}>
-                <Button href="/cabinet" variant="primary">En savoir plus</Button>
+                <Button href="/cabinet" variant="primary">
+                  En savoir plus
+                </Button>
               </div>
             </div>
           </div>
@@ -158,11 +190,20 @@ export default function HomePage() {
             {expertises.map((e) => (
               <Card key={e.title} hover padding="md">
                 <div className="service-card__icon" style={{ marginBottom: 'var(--sp-5)' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--accent)' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'var(--text-xl)',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                    }}
+                  >
                     {e.title.charAt(0)}
                   </span>
                 </div>
-                <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>{e.title}</h3>
+                <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                  {e.title}
+                </h3>
                 <p className="service-card__desc">{e.desc}</p>
               </Card>
             ))}
@@ -189,7 +230,14 @@ export default function HomePage() {
             }}
           >
             {valeurs.map((v, i) => (
-              <div key={v.title} style={{ position: 'relative', paddingLeft: 'var(--sp-6)', borderLeft: '2px solid var(--border-md)' }}>
+              <div
+                key={v.title}
+                style={{
+                  position: 'relative',
+                  paddingLeft: 'var(--sp-6)',
+                  borderLeft: '2px solid var(--border-md)',
+                }}
+              >
                 <span
                   aria-hidden="true"
                   style={{
@@ -202,13 +250,36 @@ export default function HomePage() {
                     background: 'var(--accent-green)',
                   }}
                 />
-                <p style={{ fontSize: 'var(--text-xs)', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-300)', marginBottom: 'var(--sp-2)' }}>
+                <p
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-300)',
+                    marginBottom: 'var(--sp-2)',
+                  }}
+                >
                   {String(i + 1).padStart(2, '0')}
                 </p>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', color: 'var(--text-900)', marginBottom: 'var(--sp-2)' }}>
+                <h3
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'var(--text-2xl)',
+                    color: 'var(--text-900)',
+                    marginBottom: 'var(--sp-2)',
+                  }}
+                >
                   {v.title}
                 </h3>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75 }}>{v.desc}</p>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-500)',
+                    lineHeight: 1.75,
+                  }}
+                >
+                  {v.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -227,14 +298,32 @@ export default function HomePage() {
               <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 4vw, 3.5rem)', lineHeight: 1.15 }}>
                 Un différend ? Parlons-en.
               </h2>
-              <p style={{ marginTop: 'var(--sp-6)', color: 'rgba(255,255,255,0.8)', maxWidth: '42ch', marginInline: 'auto' }}>
-                Que vous soyez une entreprise ou un particulier, nous vous aidons à retrouver une
-                issue sereine et durable.
+              <p
+                style={{
+                  marginTop: 'var(--sp-6)',
+                  color: 'rgba(255,255,255,0.85)',
+                  maxWidth: '46ch',
+                  marginInline: 'auto',
+                }}
+              >
+                Choisissez le canal qui vous convient : le formulaire pour un
+                premier échange structuré, ou WhatsApp pour une réponse
+                immédiate.
               </p>
-              <div style={{ marginTop: 'var(--sp-9)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-4)', justifyContent: 'center' }}>
-                <Button href="/contact" variant="olive" size="lg">Prendre rendez-vous</Button>
+              <div
+                style={{
+                  marginTop: 'var(--sp-9)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--sp-4)',
+                  justifyContent: 'center',
+                }}
+              >
+                <Button href="/rdv" variant="olive" size="lg">
+                  Prendre rendez-vous
+                </Button>
                 <a
-                  href={`https://wa.me/${site.contact.whatsapp}`}
+                  href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn--outline-white btn--lg"
@@ -242,6 +331,17 @@ export default function HomePage() {
                   Discuter sur WhatsApp
                 </a>
               </div>
+              <p
+                style={{
+                  marginTop: 'var(--sp-6)',
+                  color: 'rgba(255,255,255,0.55)',
+                  fontSize: 'var(--text-xs)',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Réponse sous 24 à 48 heures ouvrées
+              </p>
             </div>
           </div>
         </div>

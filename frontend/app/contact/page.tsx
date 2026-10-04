@@ -6,6 +6,7 @@ import {
   Clock,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
 } from 'lucide-react'
 
@@ -22,6 +23,10 @@ export const metadata: Metadata = {
 }
 
 export default function ContactPage() {
+  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
+    'Bonjour, je souhaite obtenir des informations sur les services du cabinet.',
+  )}`
+
   const contactJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ContactPage',
@@ -118,7 +123,9 @@ export default function ContactPage() {
                     {site.contact.phone}
                   </a>
                   {site.contact.phone2 && (
-                    <div className="contact-info-item__sub">{site.contact.phone2}</div>
+                    <div className="contact-info-item__sub">
+                      {site.contact.phone2}
+                    </div>
                   )}
                 </div>
               </div>
@@ -135,7 +142,9 @@ export default function ContactPage() {
                   >
                     {site.contact.emailPro}
                   </a>
-                  <div className="contact-info-item__sub">{site.contact.email}</div>
+                  <div className="contact-info-item__sub">
+                    {site.contact.email}
+                  </div>
                 </div>
               </div>
 
@@ -145,7 +154,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <div className="contact-info-item__label">Localisation</div>
-                  <div className="contact-info-item__value">{site.address.full}</div>
+                  <div className="contact-info-item__value">
+                    {site.address.full}
+                  </div>
                 </div>
               </div>
 
@@ -190,6 +201,15 @@ export default function ContactPage() {
                   <CalendarDays size={16} aria-hidden="true" />
                   <span>Prendre rendez-vous</span>
                 </Link>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--ghost btn--md"
+                >
+                  <MessageCircle size={16} aria-hidden="true" />
+                  <span>Discuter sur WhatsApp</span>
+                </a>
               </div>
             </aside>
 

@@ -1,6 +1,5 @@
 // app/equipe/page.tsx
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import {
   ArrowRight,
   Award,
@@ -13,7 +12,9 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import ImageCarousel, { type CarouselSlide } from '@/components/features/ImageCarousel'
+import ImageCarousel, {
+  type CarouselSlide,
+} from '@/components/features/ImageCarousel'
 import { site } from '@/lib/site'
 
 export const metadata: Metadata = {
@@ -96,6 +97,10 @@ const langues = [
 ]
 
 export default function EquipePage() {
+  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
+    'Bonjour, je souhaite prendre rendez-vous avec le cabinet.',
+  )}`
+
   return (
     <>
       {/* En-tête */}
@@ -202,7 +207,7 @@ export default function EquipePage() {
                   gap: 'var(--sp-3)',
                 }}
               >
-                <Button href="/contact">Prendre rendez-vous</Button>
+                <Button href="/rdv">Prendre rendez-vous</Button>
                 <Button
                   href="/portfolio"
                   variant="outline"
@@ -235,10 +240,16 @@ export default function EquipePage() {
               const Icon = item.icon
               return (
                 <Card key={item.title} hover>
-                  <div className="service-card__icon" style={{ marginBottom: 'var(--sp-5)' }}>
+                  <div
+                    className="service-card__icon"
+                    style={{ marginBottom: 'var(--sp-5)' }}
+                  >
                     <Icon size={22} aria-hidden="true" />
                   </div>
-                  <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                  <h3
+                    className="service-card__title"
+                    style={{ fontSize: 'var(--text-lg)' }}
+                  >
                     {item.title}
                   </h3>
                   <p className="service-card__desc">{item.desc}</p>
@@ -276,7 +287,11 @@ export default function EquipePage() {
                 {formations.map((item) => (
                   <div
                     key={`${item.annee}-${item.titre}`}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-5)' }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 'var(--sp-5)',
+                    }}
                   >
                     <span
                       style={{
@@ -314,7 +329,13 @@ export default function EquipePage() {
                       >
                         {item.titre}
                       </h3>
-                      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', marginTop: 'var(--sp-1)' }}>
+                      <p
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--text-500)',
+                          marginTop: 'var(--sp-1)',
+                        }}
+                      >
                         {item.etablissement}
                       </p>
                     </div>
@@ -376,7 +397,13 @@ export default function EquipePage() {
                 >
                   Centres d’intérêt
                 </h3>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75 }}>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-500)',
+                    lineHeight: 1.75,
+                  }}
+                >
                   Télévision, information, voyages. Qualités essentielles :
                   dynamique, persévérante.
                 </p>
@@ -396,14 +423,37 @@ export default function EquipePage() {
               <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 3rem)' }}>
                 Envie d’échanger ?
               </h2>
-              <p style={{ marginTop: 'var(--sp-5)', color: 'rgba(255,255,255,0.8)', maxWidth: '44ch', marginInline: 'auto' }}>
+              <p
+                style={{
+                  marginTop: 'var(--sp-5)',
+                  color: 'rgba(255,255,255,0.85)',
+                  maxWidth: '44ch',
+                  marginInline: 'auto',
+                }}
+              >
                 Un premier entretien confidentiel permet de clarifier votre
                 situation et d’envisager la meilleure voie.
               </p>
-              <div style={{ marginTop: 'var(--sp-8)' }}>
-                <Button href="/contact" variant="olive" size="lg">
+              <div
+                style={{
+                  marginTop: 'var(--sp-8)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--sp-4)',
+                  justifyContent: 'center',
+                }}
+              >
+                <Button href="/rdv" variant="olive" size="lg">
                   Prendre rendez-vous
                 </Button>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--outline-white btn--lg"
+                >
+                  Discuter sur WhatsApp
+                </a>
               </div>
             </div>
           </div>
