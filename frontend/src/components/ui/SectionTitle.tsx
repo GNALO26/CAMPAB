@@ -1,29 +1,44 @@
-﻿interface Props {
-  label?: string;
-  title: string;
-  subtitle?: string;
-  align?: "left" | "center";
-  light?: boolean;
+﻿// src/components/ui/SectionTitle.tsx
+type HeadingLevel = 'h1' | 'h2' | 'h3'
+type Align = 'left' | 'center'
+
+interface Props {
+  label?: string
+  title: string
+  subtitle?: string
+  align?: Align
+  light?: boolean
+  as?: HeadingLevel
+  id?: string
+  className?: string
 }
 
 export default function SectionTitle({
-  label, title, subtitle, align = "center", light = false,
+  label,
+  title,
+  subtitle,
+  align = 'center',
+  light = false,
+  as: Heading = 'h2',
+  id,
+  className = '',
 }: Props) {
+  const classes = [
+    'section-title',
+    align === 'center' ? 'section-title--center' : 'section-title--left',
+    light ? 'section-title--light' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className={`max-w-3xl ${align === "center" ? "mx-auto text-center" : "text-left"}`}>
-      {label && (
-        <span className={`inline-block text-xs font-semibold tracking-[0.25em] uppercase mb-4 ${light ? "text-olive-light" : "text-olive"}`}>
-          {label}
-        </span>
-      )}
-      <h2 className={`text-3xl sm:text-4xl lg:text-5xl leading-tight font-semibold ${light ? "text-white" : "text-navy-deep"}`}>
+    <div className={classes}>
+      {label && <span className="section-title__label">{label}</span>}
+      <Heading id={id} className="section-title__heading">
         {title}
-      </h2>
-      {subtitle && (
-        <p className={`mt-5 text-base sm:text-lg leading-relaxed ${light ? "text-sky" : "text-ink-soft"}`}>
-          {subtitle}
-        </p>
-      )}
+      </Heading>
+      {subtitle && <p className="section-title__subtitle">{subtitle}</p>}
     </div>
-  );
+  )
 }

@@ -1,23 +1,28 @@
 {
-  "name": "CAMPAB - Cabinet d'Arbitrage et de Médiation",
+  "name": "Cabinet CAMPAB - Arbitrage et Médiation",
   "short_name": "CAMPAB",
-  "description": "Cabinet d'Arbitrage et de Médiation Prudencia Abode Badou - Cotonou, Bénin",
+  "description": "Cabinet juridique à Cotonou spécialisé en médiation, arbitrage OHADA et consultations.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#0D2B5E",
+  "background_color": "#F8FAF9",
+  "theme_color": "#0B2942",
   "orientation": "portrait-primary",
   "lang": "fr",
+  "dir": "ltr",
+  "categories": ["business", "legal", "professional"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/apple-touch-icon.png",

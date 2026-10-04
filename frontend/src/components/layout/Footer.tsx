@@ -1,84 +1,169 @@
+// src/components/layout/Footer.tsx
 import Link from 'next/link'
-import { Phone, Mail, MapPin, Clock } from 'lucide-react'
+import {
+  Clock,
+  Facebook,
+  Linkedin,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+} from 'lucide-react'
+
+import { site } from '@/lib/site'
+
+const navigationLinks = [
+  { label: 'Accueil', href: '/' },
+  { label: 'Le Cabinet', href: '/cabinet' },
+  { label: 'Nos Expertises', href: '/expertises' },
+  { label: 'Notre Équipe', href: '/equipe' },
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'Actualités', href: '/blog' },
+]
+
+const resourceLinks = [
+  { label: 'Médiation et arbitrage', href: '/expertises' },
+  { label: 'Droit OHADA', href: '/expertises' },
+  { label: 'Prendre rendez-vous', href: '/contact' },
+  { label: 'Mentions légales', href: '/mentions-legales' },
+  { label: 'Confidentialité', href: '/confidentialite' },
+]
+
+const legalLinks = [
+  { label: 'Mentions légales', href: '/mentions-legales' },
+  { label: 'Confidentialité', href: '/confidentialite' },
+  { label: 'Conditions d’utilisation', href: '/cgu' },
+]
 
 export default function Footer() {
+  const year = new Date().getFullYear()
+  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
+    'Bonjour, je souhaite prendre rendez-vous avec le cabinet.',
+  )}`
+
   return (
     <footer className="footer" role="contentinfo">
       <div className="container">
         <div className="footer__top">
           <div>
-            <div className="footer__brand-name">CAMPAB</div>
-            <div className="footer__brand-sub">Cotonou, Bénin</div>
-            <p className="footer__brand-desc">
-              Cabinet d&apos;Arbitrage et de Médiation Prudencia Abode Badou.
-              Expertise OHADA au service des entreprises et des particuliers.
-            </p>
+            <div className="footer__brand-name">{site.sigle}</div>
+            <div className="footer__brand-sub">
+              {site.address.city}, {site.address.country}
+            </div>
+            <p className="footer__brand-desc">{site.description}</p>
+
+            <div className="footer__social">
+              <a
+                href={site.social.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Profil LinkedIn du cabinet"
+                className="footer__social-link"
+              >
+                <Linkedin size={16} aria-hidden="true" />
+              </a>
+              <a
+                href={site.social.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Page Facebook du cabinet"
+                className="footer__social-link"
+              >
+                <Facebook size={16} aria-hidden="true" />
+              </a>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Contacter le cabinet sur WhatsApp"
+                className="footer__social-link"
+              >
+                <MessageCircle size={16} aria-hidden="true" />
+              </a>
+            </div>
           </div>
 
           <div>
             <div className="footer__col-title">Navigation</div>
-            <ul className="footer__links">
-              <li><Link href="/" className="footer__link">Accueil</Link></li>
-              <li><Link href="/cabinet" className="footer__link">Le Cabinet</Link></li>
-              <li><Link href="/expertises" className="footer__link">Expertises</Link></li>
-              <li><Link href="/equipe" className="footer__link">Équipe</Link></li>
-              <li><Link href="/portfolio" className="footer__link">Portfolio</Link></li>
-              <li><Link href="/blog" className="footer__link">Blog</Link></li>
+            <ul className="footer__links" role="list">
+              {navigationLinks.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="footer__link">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           <div>
             <div className="footer__col-title">Ressources</div>
-            <ul className="footer__links">
-              <li><Link href="/arbitrage" className="footer__link">Arbitrage OHADA</Link></li>
-              <li><Link href="/mediation" className="footer__link">Médiation</Link></li>
-              <li><Link href="/contact" className="footer__link">Contact</Link></li>
-              <li><Link href="/mentions-legales" className="footer__link">Mentions légales</Link></li>
-              <li><Link href="/confidentialite" className="footer__link">Confidentialité</Link></li>
+            <ul className="footer__links" role="list">
+              {resourceLinks.map((item) => (
+                <li key={`${item.href}-${item.label}`}>
+                  <Link href={item.href} className="footer__link">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           <div>
             <div className="footer__col-title">Contact</div>
-            <ul className="footer__links">
+            <ul className="footer__links" role="list">
               <li>
-                <a href="tel:+2290197762936" className="footer__link footer__contact">
-                  <Phone size={14} /> 01 97 76 29 36
+                <a
+                  href={`tel:${site.contact.phone.replace(/\s/g, '')}`}
+                  className="footer__link footer__contact"
+                >
+                  <Phone size={16} aria-hidden="true" />
+                  <span>{site.contact.phone}</span>
                 </a>
               </li>
               <li>
-                <a href="mailto:p.abodecabinet@gmail.com" className="footer__link footer__contact">
-                  <Mail size={14} /> p.abodecabinet@gmail.com
+                <a
+                  href={`mailto:${site.contact.emailPro}`}
+                  className="footer__link footer__contact"
+                >
+                  <Mail size={16} aria-hidden="true" />
+                  <span>{site.contact.emailPro}</span>
                 </a>
               </li>
               <li>
                 <span className="footer__link footer__contact">
-                  <MapPin size={14} /> Cotonou, Bénin
+                  <MapPin size={16} aria-hidden="true" />
+                  <span>{site.address.full}</span>
                 </span>
               </li>
-              <li>
-                <span className="footer__link footer__contact">
-                  <Clock size={14} /> Lundi au vendredi, 8h à 20h
-                </span>
-              </li>
+              {site.hours.map((entry) => (
+                <li key={entry.day}>
+                  <span className="footer__link footer__contact">
+                    <Clock size={16} aria-hidden="true" />
+                    <span>
+                      {entry.day} : {entry.time}
+                    </span>
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
         <div className="footer__bottom">
           <p className="footer__copy">
-            © {new Date().getFullYear()} CAMPAB. Tous droits réservés.
+            © {year} {site.name}. Tous droits réservés.
           </p>
           <div className="footer__legal">
-            <Link href="/mentions-legales" className="footer__legal-link">
-              Mentions légales
-            </Link>
-            <Link href="/confidentialite" className="footer__legal-link">
-              Confidentialité
-            </Link>
-            <Link href="/cgu" className="footer__legal-link">
-              Conditions d&apos;utilisation
-            </Link>
+            {legalLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="footer__legal-link"
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

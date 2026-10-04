@@ -1,39 +1,52 @@
-import { ReactNode } from "react";
+// src/components/ui/Card.tsx
+import type { CSSProperties, ReactNode } from 'react'
 
-type Variant = "default" | "navy" | "olive" | "sky";
+type Variant = 'default' | 'navy' | 'olive' | 'sky'
+type Padding = 'sm' | 'md' | 'lg'
 
 interface Props {
-  children: ReactNode;
-  className?: string;
-  hover?: boolean;
-  variant?: Variant;
+  children: ReactNode
+  variant?: Variant
+  padding?: Padding
+  hover?: boolean
+  className?: string
+  style?: CSSProperties
 }
 
-const variants: Record<Variant, string> = {
-  default: "bg-white border-line",
-  navy: "bg-navy-deep border-navy-deep text-white",
-  olive: "bg-olive border-olive text-white",
-  sky: "bg-sky/60 border-sky",
-};
+const variantClass: Record<Variant, string> = {
+  default: '',
+  navy: 'card--navy',
+  olive: 'card--olive',
+  sky: 'card--sky',
+}
+
+const paddingClass: Record<Padding, string> = {
+  sm: 'card--pad-sm',
+  md: 'card--pad-md',
+  lg: 'card--pad-lg',
+}
 
 export default function Card({
   children,
-  className = "",
-  hover = true,
-  variant = "default",
+  variant = 'default',
+  padding = 'md',
+  hover = false,
+  className = '',
+  style,
 }: Props) {
-  const hoverCls =
-    variant === "default"
-      ? "hover:-translate-y-1 hover:shadow-hover hover:border-olive/40"
-      : "hover:-translate-y-1 hover:shadow-hover";
+  const classes = [
+    'card',
+    variantClass[variant],
+    paddingClass[padding],
+    hover ? 'card--hover' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div
-      className={`border rounded-card p-6 sm:p-8 transition-all duration-300 ${variants[variant]} ${
-        hover ? hoverCls : ""
-      } ${className}`}
-    >
+    <div className={classes} style={style}>
       {children}
     </div>
-  );
+  )
 }

@@ -1,224 +1,251 @@
-﻿import Image from "next/image";
-import Link from "next/link";
-import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
-import SectionTitle from "@/components/ui/SectionTitle";
-import AnimatedText from "@/components/features/AnimatedText";
-import StatsCounter from "@/components/features/StatsCounter";
-import { site, expertises, valeurs } from "@/lib/site";
+﻿// app/page.tsx
+import Image from 'next/image'
+import Link from 'next/link'
+import Button from '@/components/ui/Button'
+import Card from '@/components/ui/Card'
+import SectionTitle from '@/components/ui/SectionTitle'
+import AnimatedText from '@/components/features/AnimatedText'
+import StatsCounter from '@/components/features/StatsCounter'
+import { site, expertises, valeurs } from '@/lib/site'
 
 export default function HomePage() {
   return (
     <>
-      {/* SECTION PRINCIPALE */}
-      <section className="relative overflow-hidden bg-ivory">
-        <div className="deco-circle -top-32 -right-32 w-[500px] h-[500px]" />
-        <div className="deco-circle top-1/2 -left-40 w-[400px] h-[400px]" />
+      {/* ============================================================
+          HERO
+          ============================================================ */}
+      <section className="page-hero">
+        <div className="page-hero__bg" aria-hidden="true">
+          <div className="page-hero__geo page-hero__geo--1" />
+          <div className="page-hero__geo page-hero__geo--2" />
+          <div className="page-hero__geo page-hero__geo--3" />
+          <div className="page-hero__grid" />
+        </div>
 
-        <div className="container-x relative py-20 lg:py-28 grid lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-7 animate-fade-up">
-            <span className="inline-block text-xs font-semibold tracking-[0.3em] uppercase text-olive mb-6">
-              Cabinet Juridique à Cotonou
-            </span>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold leading-[1.1] text-navy-deep">
-              Le droit au service
-              <br />
-              de vos{" "}
-              <AnimatedText
-                words={["intérêts.", "ambitions.", "droits.", "projets."]}
-                className="text-olive"
-              />
-            </h1>
-
-            <p className="mt-7 text-base sm:text-lg text-ink-soft leading-relaxed max-w-xl">
-              {site.signature} Le Cabinet CAMPAB accompagne les entreprises et
-              les particuliers en médiation, en arbitrage OHADA et en conseil
-              juridique, avec rigueur, discrétion et proximité.
-            </p>
-
-            <div className="mt-9 flex flex-wrap gap-4">
-              <Button href="/contact" size="lg">
-                Prendre rendez-vous
-              </Button>
-              <Button href="/cabinet" variant="outline" size="lg">
-                Découvrir le cabinet
-              </Button>
-            </div>
-
-            <div className="mt-12 flex items-center gap-8 text-sm text-ink-soft">
-              <div>
-                <p className="font-serif text-2xl text-navy-deep font-semibold">
-                  OHADA
-                </p>
-                <p className="text-xs uppercase tracking-wider">
-                  Arbitrage régional
-                </p>
-              </div>
-              <div className="w-px h-10 bg-line" />
-              <div>
-                <p className="font-serif text-2xl text-navy-deep font-semibold">
-                  Médiation
-                </p>
-                <p className="text-xs uppercase tracking-wider">
-                  Résolution amiable
-                </p>
-              </div>
-            </div>
+        <div className="page-hero__content">
+          <div className="page-hero__eyebrow">
+            <span className="page-hero__eyebrow-line" aria-hidden="true" />
+            <span className="page-hero__eyebrow-text">Cabinet juridique à Cotonou</span>
           </div>
 
-          <div className="lg:col-span-5 relative animate-fade-in">
-            <div className="relative aspect-[4/5] rounded-card overflow-hidden shadow-soft border border-line bg-sky">
-              <Image
-                src="/images/portrait.jpg"
-                alt="Sètondji Prudencia ABODE, juriste et médiatrice"
-                fill
-                priority
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 40vw"
+          <h1 className="page-hero__title">
+            Le droit au service
+            <em>
+              de vos{' '}
+              <AnimatedText
+                words={['intérêts.', 'ambitions.', 'droits.', 'projets.']}
+                ariaLabel="Le droit au service de vos intérêts, ambitions, droits et projets."
               />
+            </em>
+          </h1>
+
+          <p className="page-hero__desc">
+            {site.signature} Le Cabinet CAMPAB accompagne les entreprises et les particuliers
+            en médiation, en arbitrage OHADA et en conseil juridique, avec rigueur,
+            discrétion et proximité.
+          </p>
+
+          <div className="page-hero__cta">
+            <Button href="/contact" size="lg">
+              Prendre rendez-vous
+            </Button>
+            <Button href="/cabinet" variant="outline-white" size="lg">
+              Découvrir le cabinet
+            </Button>
+          </div>
+
+          <div className="page-hero__trust">
+            <div className="page-hero__trust-item">Arbitrage OHADA</div>
+            <div className="page-hero__trust-item">Médiation conventionnelle</div>
+            <div className="page-hero__trust-item">Conseil aux entreprises</div>
+          </div>
+        </div>
+
+        <div className="page-hero__visual">
+          <div className="photo-frame">
+            <span className="photo-frame__corner photo-frame__corner--tl" aria-hidden="true" />
+            <span className="photo-frame__corner photo-frame__corner--br" aria-hidden="true" />
+            <Image
+              src="/images/portrait.jpg"
+              alt="Sètondji Prudencia ABODE, juriste, médiatrice et arbitre OHADA"
+              width={420}
+              height={580}
+              className="photo-frame__img"
+              priority
+            />
+            <div className="photo-card photo-card--exp">
+              <p className="photo-card__num">14+</p>
+              <p className="photo-card__label">Années d’expérience</p>
             </div>
-            <div className="absolute bottom-6 left-6 right-6 sm:right-auto sm:w-auto bg-white border border-line rounded-card px-6 py-4 shadow-card">
-              <p className="font-serif text-navy-deep font-semibold text-base">
-                Sètondji Prudencia ABODE
-              </p>
-              <p className="text-xs text-ink-soft mt-1">
-                Juriste, médiatrice et arbitre OHADA
-              </p>
+            <div className="photo-card photo-card--status">
+              <span className="photo-card__status-dot" aria-hidden="true" />
+              <div>
+                <p className="photo-card__label" style={{ margin: 0 }}>Disponible</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-900)', margin: 0, fontWeight: 600 }}>Sètondji Prudencia ABODE</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* STATISTIQUES */}
-      <section className="bg-navy-deep py-16 lg:py-20">
-        <div className="container-x">
+      {/* ============================================================
+          STATISTIQUES
+          ============================================================ */}
+      <section className="section--navy" style={{ paddingBlock: 'var(--sp-16)' }}>
+        <div className="container">
           <StatsCounter />
         </div>
       </section>
 
-      {/* PRÉSENTATION DU CABINET */}
-      <section className="py-20 lg:py-28">
-        <div className="container-x grid lg:grid-cols-2 gap-14 items-center">
-          <div className="relative aspect-[5/4] rounded-card overflow-hidden border border-line shadow-card">
-            <Image
-              src="/images/cabinet.jpg"
-              alt="Cabinet CAMPAB à Cotonou"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-          </div>
+      {/* ============================================================
+          PRÉSENTATION DU CABINET
+          ============================================================ */}
+      <section className="section">
+        <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--sp-12)' }}>
+          <div style={{ display: 'grid', gap: 'var(--sp-14)', alignItems: 'center' }} className="lg:grid-cols-2">
+            <div style={{ position: 'relative', aspectRatio: '5 / 4', borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <Image
+                src="/images/cabinet.jpg"
+                alt="Locaux du Cabinet CAMPAB à Cotonou"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
 
-          <div>
-            <SectionTitle
-              align="left"
-              label="Le Cabinet"
-              title="Un accompagnement humain, une rigueur juridique."
-            />
-            <p className="mt-6 text-ink-soft leading-relaxed">
-              Le Cabinet CAMPAB est un cabinet juridique établi à Cotonou. Il est
-              dédié au conseil, à la médiation et à l&apos;arbitrage. Nous croyons
-              qu&apos;un conflit peut devenir une opportunité lorsqu&apos;il est
-              traité avec méthode, écoute et intégrité.
-            </p>
-            <p className="mt-4 text-ink-soft leading-relaxed">
-              Notre approche conjugue la précision du droit OHADA et la proximité
-              d&apos;une relation de confiance, afin de transformer durablement
-              les litiges en solutions.
-            </p>
-            <div className="mt-8">
-              <Button href="/cabinet" variant="primary">
-                En savoir plus
-              </Button>
+            <div>
+              <SectionTitle
+                align="left"
+                label="Le Cabinet"
+                title="Un accompagnement humain, une rigueur juridique."
+              />
+              <p style={{ marginTop: 'var(--sp-6)' }}>
+                Le Cabinet CAMPAB est un cabinet juridique établi à Cotonou, dédié au conseil,
+                à la médiation et à l’arbitrage. Nous croyons qu’un conflit peut devenir une
+                opportunité lorsqu’il est traité avec méthode, écoute et intégrité.
+              </p>
+              <p style={{ marginTop: 'var(--sp-4)' }}>
+                Notre approche conjugue la précision du droit OHADA et la proximité d’une relation
+                de confiance, afin de transformer durablement les litiges en solutions.
+              </p>
+              <div style={{ marginTop: 'var(--sp-8)' }}>
+                <Button href="/cabinet" variant="primary">En savoir plus</Button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* EXPERTISES */}
-      <section className="bg-sky/40 py-20 lg:py-28">
-        <div className="container-x">
+      {/* ============================================================
+          EXPERTISES
+          ============================================================ */}
+      <section className="section section--alt">
+        <div className="container">
           <SectionTitle
-            label="Nos Expertises"
+            label="Nos expertises"
             title="Des compétences au service de vos enjeux."
-            subtitle="Du conseil préventif au contentieux, nous couvrons l'ensemble des besoins juridiques des entreprises et des particuliers."
+            subtitle="Du conseil préventif au contentieux, nous couvrons l’ensemble des besoins juridiques des entreprises et des particuliers."
           />
 
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            style={{
+              marginTop: 'var(--sp-14)',
+              display: 'grid',
+              gap: 'var(--sp-6)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            }}
+          >
             {expertises.map((e) => (
-              <Card key={e.title}>
-                <div className="w-12 h-12 rounded-full bg-sky flex items-center justify-center mb-5">
-                  <span className="text-olive font-serif text-xl font-bold">
+              <Card key={e.title} hover padding="md">
+                <div className="service-card__icon" style={{ marginBottom: 'var(--sp-5)' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--accent)' }}>
                     {e.title.charAt(0)}
                   </span>
                 </div>
-                <h3 className="font-serif text-xl text-navy-deep mb-2">
-                  {e.title}
-                </h3>
-                <p className="text-sm text-ink-soft leading-relaxed">
-                  {e.desc}
-                </p>
+                <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>{e.title}</h3>
+                <p className="service-card__desc">{e.desc}</p>
               </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* VALEURS */}
-      <section className="py-20 lg:py-28">
-        <div className="container-x">
+      {/* ============================================================
+          VALEURS
+          ============================================================ */}
+      <section className="section">
+        <div className="container">
           <SectionTitle
-            label="Nos Valeurs"
+            label="Nos valeurs"
             title="Ce qui guide chacune de nos décisions."
           />
 
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
+          <div
+            style={{
+              marginTop: 'var(--sp-14)',
+              display: 'grid',
+              gap: 'var(--sp-12)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            }}
+          >
             {valeurs.map((v, i) => (
-              <div
-                key={v.title}
-                className="relative pl-6 border-l-2 border-olive/30"
-              >
-                <span className="absolute -left-[7px] top-0 w-3 h-3 rounded-full bg-olive" />
-                <p className="text-xs tracking-widest uppercase text-ink-soft mb-2">
-                  {String(i + 1).padStart(2, "0")}
+              <div key={v.title} style={{ position: 'relative', paddingLeft: 'var(--sp-6)', borderLeft: '2px solid var(--border-md)' }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: -7,
+                    top: 0,
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    background: 'var(--accent-green)',
+                  }}
+                />
+                <p style={{ fontSize: 'var(--text-xs)', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-300)', marginBottom: 'var(--sp-2)' }}>
+                  {String(i + 1).padStart(2, '0')}
                 </p>
-                <h3 className="font-serif text-2xl text-navy-deep mb-2">
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', color: 'var(--text-900)', marginBottom: 'var(--sp-2)' }}>
                   {v.title}
                 </h3>
-                <p className="text-sm text-ink-soft leading-relaxed">{v.desc}</p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75 }}>{v.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* APPEL À L'ACTION */}
-      <section className="relative overflow-hidden bg-navy-deep py-20">
-        <div className="deco-circle -top-40 right-0 w-[600px] h-[600px] opacity-40" />
-        <div className="container-x relative text-center max-w-3xl mx-auto">
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-white leading-tight">
-            Un différend ? Parlons-en.
-          </h2>
-          <p className="mt-6 text-sky/90 text-lg">
-            Que vous soyez une entreprise ou un particulier, nous vous aidons à
-            retrouver une issue sereine et durable.
-          </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-4">
-            <Button href="/contact" variant="olive" size="lg">
-              Prendre rendez-vous
-            </Button>
-            <a
-              href={`https://wa.me/${site.contact.whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-full font-medium tracking-wide border border-white text-white px-8 py-4 text-base transition-all duration-300 hover:bg-white hover:text-navy-deep"
-            >
-              Discuter sur WhatsApp
-            </a>
+      {/* ============================================================
+          CTA
+          ============================================================ */}
+      <section className="section">
+        <div className="container">
+          <div className="cta-block">
+            <div className="cta-block__geo cta-block__geo--1" aria-hidden="true" />
+            <div className="cta-block__geo cta-block__geo--2" aria-hidden="true" />
+            <div className="cta-block__inner">
+              <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 4vw, 3.5rem)', lineHeight: 1.15 }}>
+                Un différend ? Parlons-en.
+              </h2>
+              <p style={{ marginTop: 'var(--sp-6)', color: 'rgba(255,255,255,0.8)', maxWidth: '42ch', marginInline: 'auto' }}>
+                Que vous soyez une entreprise ou un particulier, nous vous aidons à retrouver une
+                issue sereine et durable.
+              </p>
+              <div style={{ marginTop: 'var(--sp-9)', display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-4)', justifyContent: 'center' }}>
+                <Button href="/contact" variant="olive" size="lg">Prendre rendez-vous</Button>
+                <a
+                  href={`https://wa.me/${site.contact.whatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--outline-white btn--lg"
+                >
+                  Discuter sur WhatsApp
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
     </>
-  );
+  )
 }

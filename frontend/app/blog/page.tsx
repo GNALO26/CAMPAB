@@ -1,162 +1,176 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import Image from "next/image";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { ArrowRight, CalendarDays } from "lucide-react";
-import SectionTitle from "@/components/ui/SectionTitle";
-import Card from "@/components/ui/Card";
-import { API_URL } from "@/lib/api";
-import { site } from "@/lib/site";
-import type { Paginated, ArticleListItem, ArticleCategory } from "@/types";
+// app/blog/page.tsx
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import Image from 'next/image'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
+import { ArrowRight, CalendarDays } from 'lucide-react'
+
+import Card from '@/components/ui/Card'
+import { API_URL } from '@/lib/api'
+import { site } from '@/lib/site'
+import { categoryLabels } from '@/lib/utils'
+import type { ArticleCategory, ArticleListItem, Paginated } from '@/types'
 
 export const metadata: Metadata = {
-  title: "Actualités juridiques",
+  title: 'Actualités juridiques',
   description:
-    "Blog juridique du Cabinet CAMPAB : vulgarisation du droit OHADA, conseils pratiques, éthique et actualités juridiques au Bénin.",
+    'Blog juridique du Cabinet CAMPAB : vulgarisation du droit OHADA, conseils pratiques, éthique et actualités juridiques au Bénin.',
   alternates: { canonical: `${site.url}/blog` },
-};
+}
 
-const CATEGORIES: { value: ArticleCategory | ""; label: string }[] = [
-  { value: "", label: "Tous" },
-  { value: "vulgarisation", label: "Vulgarisation" },
-  { value: "conseils", label: "Conseils" },
-  { value: "ethique", label: "Éthique" },
-  { value: "actualite", label: "Actualités" },
-];
+const FILTERS: { value: ArticleCategory | ''; label: string }[] = [
+  { value: '', label: 'Tous' },
+  { value: 'vulgarisation', label: 'Vulgarisation' },
+  { value: 'conseils', label: 'Conseils' },
+  { value: 'ethique', label: 'Éthique' },
+  { value: 'actualite', label: 'Actualités' },
+]
 
-const categoryLabels: Record<ArticleCategory, string> = {
-  vulgarisation: "Vulgarisation",
-  conseils: "Conseils",
-  ethique: "Éthique",
-  actualite: "Actualité",
-};
+const EMPTY: Paginated<ArticleListItem> = {
+  items: [],
+  pagination: { page: 1, limit: 9, total: 0, totalPages: 0 },
+}
 
-async function getArticles(category?: string, page = 1): Promise<Paginated<ArticleListItem>> {
-  const params = new URLSearchParams();
-  params.set("page", String(page));
-  params.set("limit", "9");
-  if (category) params.set("category", category);
+async function getArticles(
+  category?: string,
+  page = 1,
+): Promise<Paginated<ArticleListItem>> {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('limit', '9')
+  if (category) params.set('category', category)
 
-  const url = `${API_URL}/articles?${params.toString()}`;
   try {
-    const res = await fetch(url, { next: { revalidate: 60 } });
-    if (!res.ok) throw new Error("Fetch failed");
-    return await res.json();
+    const url = `${API_URL}/articles?${params.toString()}`
+    const res = await fetch(url, { next: { revalidate: 60 } })
+    if (!res.ok) return EMPTY
+    const data = (await res.json()) as Paginated<ArticleListItem>
+    return data
   } catch {
-    return {
-      items: [],
-      pagination: { page: 1, limit: 9, total: 0, totalPages: 0 },
-    };
+    return EMPTY
   }
 }
 
 interface Props {
-  searchParams: Promise<{ category?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; page?: string }>
 }
 
 export default async function BlogPage({ searchParams }: Props) {
-  const sp = await searchParams;
-  const category = sp.category as ArticleCategory | undefined;
-  const page = Number(sp.page) || 1;
+  const sp = await searchParams
+  const category = (sp.category ?? '') as ArticleCategory | ''
+  const page = Math.max(1, Number(sp.page) || 1)
 
-  const { items, pagination } = await getArticles(category, page);
+  const { items, pagination } = await getArticles(category || undefined, page)
 
   return (
     <>
-      <section className="bg-navy-deep py-20">
-        <div className="container-x">
-          <span className="inline-block text-xs font-semibold tracking-[0.3em] uppercase text-olive-light mb-4">
-            Blog
-          </span>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-white max-w-3xl leading-tight">
-            Actualités & réflexions juridiques.
-          </h1>
-          <p className="mt-6 text-sky/90 text-lg max-w-2xl leading-relaxed">
-            Comprendre le droit, anticiper les risques, saisir les opportunités.
-            Nos analyses à destination des entreprises et des particuliers.
-          </p>
+      {/* En-tête */}
+      <section className="page-header" aria-labelledby="blog-title">
+        <div className="page-header__bg" aria-hidden="true" />
+        <div className="container">
+          <div className="page-header__inner">
+            <div>
+              <div className="eyebrow eyebrow--white">Actualités</div>
+              <h1 id="blog-title" className="page-header__title">
+                Réflexions et analyses juridiques.
+              </h1>
+            </div>
+            <div>
+              <p className="page-header__desc">
+                Comprendre le droit, anticiper les risques, saisir les
+                opportunités. Nos analyses à destination des entreprises et des
+                particuliers.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="py-16 lg:py-20">
-        <div className="container-x">
+      {/* Liste */}
+      <section className="section">
+        <div className="container">
           {/* Filtres */}
-          <div className="flex flex-wrap gap-2 mb-12">
-            {CATEGORIES.map((c) => {
-              const active = (c.value || "") === (category || "");
-              const href = c.value ? `/blog?category=${c.value}` : "/blog";
+          <nav
+            className="filter-pills"
+            aria-label="Filtrer les articles par catégorie"
+          >
+            {FILTERS.map((filter) => {
+              const active = filter.value === category
+              const href = filter.value
+                ? `/blog?category=${filter.value}`
+                : '/blog'
               return (
                 <Link
-                  key={c.value || "all"}
+                  key={filter.value || 'all'}
                   href={href}
-                  className={`px-4 py-2 text-sm rounded-full border transition ${
-                    active
-                      ? "bg-navy-deep text-white border-navy-deep"
-                      : "bg-white border-line text-ink hover:border-olive hover:text-olive"
-                  }`}
+                  className={`filter-pill ${active ? 'is-active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
                 >
-                  {c.label}
+                  {filter.label}
                 </Link>
-              );
+              )
             })}
-          </div>
+          </nav>
 
           {items.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="font-serif text-2xl text-navy-deep">
+            <div className="empty-state">
+              <p className="empty-state__title">
                 Aucun article pour le moment
               </p>
-              <p className="text-ink-soft mt-2 text-sm">
-                De nouvelles publications arrivent très bientôt.
+              <p className="empty-state__desc">
+                De nouvelles publications paraîtront très prochainement.
+                Revenez nous rendre visite ou abonnez-vous à notre newsletter.
               </p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {items.map((a) => (
-                <Link key={a.id} href={`/blog/${a.slug}`} className="group">
-                  <Card hover className="overflow-hidden p-0 h-full flex flex-col">
-                    <div className="relative aspect-video bg-sky/40 overflow-hidden">
-                      {a.coverImage ? (
+            <div
+              style={{
+                display: 'grid',
+                gap: 'var(--sp-8)',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              }}
+            >
+              {items.map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/blog/${article.slug}`}
+                  style={{ display: 'block', height: '100%' }}
+                >
+                  <Card hover className="post-card">
+                    <div className="post-card__media">
+                      {article.coverImage ? (
                         <Image
-                          src={a.coverImage}
-                          alt={a.title}
+                          src={article.coverImage}
+                          alt={article.title}
                           fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                           sizes="(max-width: 768px) 100vw, 33vw"
+                          style={{ objectFit: 'cover' }}
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-olive/40">
-                          <span className="font-serif text-5xl font-semibold">
-                            {a.title.charAt(0)}
-                          </span>
-                        </div>
+                        <span className="post-card__placeholder" aria-hidden="true">
+                          {article.title.charAt(0)}
+                        </span>
                       )}
-                      <span className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-widest text-navy-deep font-semibold rounded-full">
-                        {categoryLabels[a.category]}
+                      <span className="post-card__category">
+                        {categoryLabels[article.category] ?? article.category}
                       </span>
                     </div>
-                    <div className="p-6 flex flex-col flex-1">
-                      <p className="text-xs text-ink-soft flex items-center gap-1.5">
-                        <CalendarDays size={12} />
-                        {a.publishedAt
-                          ? format(new Date(a.publishedAt), "dd MMMM yyyy", {
+
+                    <div className="post-card__body">
+                      <p className="post-card__meta">
+                        <CalendarDays size={12} aria-hidden="true" />
+                        {article.publishedAt
+                          ? format(new Date(article.publishedAt), 'd MMMM yyyy', {
                               locale: fr,
                             })
-                          : "—"}
+                          : 'Publication à venir'}
                       </p>
-                      <h3 className="font-serif text-xl text-navy-deep mt-3 leading-snug line-clamp-2 group-hover:text-olive transition-colors">
-                        {a.title}
-                      </h3>
-                      <p className="text-sm text-ink-soft mt-3 leading-relaxed line-clamp-3">
-                        {a.excerpt}
-                      </p>
-                      <span className="mt-auto pt-5 inline-flex items-center gap-2 text-sm text-olive font-medium">
-                        Lire l&apos;article{" "}
-                        <ArrowRight
-                          size={14}
-                          className="transition-transform group-hover:translate-x-1"
-                        />
+                      <h2 className="post-card__title">{article.title}</h2>
+                      <p className="post-card__excerpt">{article.excerpt}</p>
+                      <span className="post-card__cta">
+                        Lire l’article
+                        <ArrowRight size={14} aria-hidden="true" />
                       </span>
                     </div>
                   </Card>
@@ -167,31 +181,31 @@ export default async function BlogPage({ searchParams }: Props) {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-14">
+            <nav
+              className="pagination"
+              aria-label="Navigation entre les pages d’articles"
+            >
               {Array.from({ length: pagination.totalPages }).map((_, i) => {
-                const p = i + 1;
-                const params = new URLSearchParams();
-                if (category) params.set("category", category);
-                params.set("page", String(p));
-                const active = p === pagination.page;
+                const p = i + 1
+                const params = new URLSearchParams()
+                if (category) params.set('category', category)
+                params.set('page', String(p))
+                const active = p === pagination.page
                 return (
                   <Link
                     key={p}
                     href={`/blog?${params.toString()}`}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm border transition ${
-                      active
-                        ? "bg-navy-deep text-white border-navy-deep"
-                        : "bg-white border-line hover:border-olive hover:text-olive"
-                    }`}
+                    className={`pagination__item ${active ? 'is-active' : ''}`}
+                    aria-current={active ? 'page' : undefined}
                   >
                     {p}
                   </Link>
-                );
+                )
               })}
-            </div>
+            </nav>
           )}
         </div>
       </section>
     </>
-  );
+  )
 }

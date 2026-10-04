@@ -1,117 +1,192 @@
 ﻿// app/layout.tsx
-import type { Metadata } from 'next'
-import { DM_Sans, Playfair_Display } from 'next/font/google'
-import Script from 'next/script'
-import './globals.css'
+import type { Metadata, Viewport } from 'next'
+import { Cormorant_Garamond, Inter } from 'next/font/google'
+
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import WhatsAppWidget from '@/components/features/WhatsAppWidget'
-import ClientAnimations from '@/components/features/ClientAnimations'
+import BackToTop from '@/components/features/BackToTop'
+import JsonLd from '@/components/features/JsonLd'
 
-const dmSans = DM_Sans({
+import { site } from '@/lib/site'
+
+import './globals.css'
+
+/* ============================================================
+   TYPOGRAPHIES (next/font, auto-hébergées, zéro CLS)
+   ============================================================ */
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  variable: '--font-body',
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
   display: 'swap',
-})
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
   variable: '--font-display',
-  display: 'swap',
+  preload: true,
 })
 
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-body',
+  preload: true,
+})
+
+/* ============================================================
+   MÉTADONNÉES SEO
+   ============================================================ */
 export const metadata: Metadata = {
-  title: 'CAMPAB - Cabinet d\'Arbitrage et de Médiation Prudencia Abode Badou',
-  description:
-    'CAMPAB, cabinet d\'arbitrage et de médiation à Cotonou, Bénin. Expertise OHADA, résolution alternative des conflits. Passez du litige à l\'accord.',
-  keywords:
-    'CAMPAB, arbitrage Bénin, médiation Cotonou, OHADA, Prudencia Abode Badou, cabinet juridique, résolution conflits, cam-pab',
-  authors: [{ name: 'Me Prudencia Sètondji ABODE BADOU' }],
-  metadataBase: new URL('https://cam-pab.com'),
+  metadataBase: new URL(site.url),
+  title: {
+    default: `${site.name} — Cabinet juridique à Cotonou`,
+    template: `%s | ${site.shortName}`,
+  },
+  description: site.description,
+  applicationName: site.shortName,
+  authors: [{ name: site.name, url: site.url }],
+  generator: 'Next.js',
+  keywords: [
+    'cabinet juridique Cotonou',
+    'avocat Bénin',
+    'médiation Bénin',
+    'arbitrage OHADA',
+    'droit des affaires Bénin',
+    'droit OHADA',
+    'consultation juridique Cotonou',
+    'Cabinet CAMPAB',
+    'Sètondji Prudencia ABODE',
+  ],
+  category: 'Services juridiques',
+  creator: site.name,
+  publisher: site.name,
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   alternates: {
-    canonical: 'https://cam-pab.com',
+    canonical: '/',
   },
   openGraph: {
-    title: 'CAMPAB - Cabinet d\'Arbitrage et de Médiation Prudencia Abode Badou',
-    description: 'Passez du litige à l\'accord : la médiation qui scelle la paix.',
-    url: 'https://cam-pab.com',
-    siteName: 'CAMPAB',
-    locale: 'fr_BJ',
     type: 'website',
+    locale: 'fr_FR',
+    url: site.url,
+    siteName: site.shortName,
+    title: `${site.name} — Cabinet juridique à Cotonou`,
+    description: site.description,
     images: [
       {
-        url: 'https://cam-pab.com/og-image.jpg',
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'CAMPAB - Cabinet d\'Arbitrage et de Médiation',
+        alt: site.name,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CAMPAB - Cabinet d\'Arbitrage et de Médiation',
-    description: 'Passez du litige à l\'accord : la médiation qui scelle la paix.',
-    images: ['https://cam-pab.com/og-image.jpg'],
+    title: `${site.name} — Cabinet juridique à Cotonou`,
+    description: site.description,
+    images: ['/og-image.jpg'],
   },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
+  },
+  manifest: '/site.webmanifest',
   robots: {
     index: true,
     follow: true,
     googleBot: {
       index: true,
       follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
-  },
-  icons: {
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    ],
-    apple: '/apple-touch-icon.png',
-    other: [
-      { rel: 'android-chrome-192x192', url: '/android-chrome-192x192.png' },
-      { rel: 'android-chrome-512x512', url: '/android-chrome-512x512.png' },
-    ],
-  },
-  manifest: '/site.webmanifest',
-  verification: {
-    google: 'kWeZd2i1hLErG5MoS_zFkIVInJlpZwArDk5r_mNmGF0',
   },
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F8FAF9' },
+    { media: '(prefers-color-scheme: dark)', color: '#18191A' },
+  ],
+  colorScheme: 'light dark',
+}
+
+/* ============================================================
+   SCRIPT ANTI-FLASH — à exécuter avant le premier paint
+   ============================================================ */
+const themeInitScript = `
+(function(){
+  try {
+    var stored = localStorage.getItem('campab-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.colorScheme = theme;
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+`
+
+/* ============================================================
+   LAYOUT RACINE
+   ============================================================ */
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html
+      lang="fr"
+      dir="ltr"
+      suppressHydrationWarning
+      className={`${cormorant.variable} ${inter.variable}`}
+    >
       <head>
-        {/* Google Analytics */}
-        <Script
-          strategy="afterInteractive"
-          src="https://www.googletagmanager.com/gtag/js?id=G-T1154HQWG5"
-        />
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-T1154HQWG5');
-            `,
-          }}
-        />
+        {/* Script synchrone : applique le thème avant le premier paint */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+
+        {/* Préconnexions utiles */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* DNS prefetch pour WhatsApp et Maps */}
+        <link rel="dns-prefetch" href="https://wa.me" />
+        <link rel="dns-prefetch" href="https://www.google.com" />
+
+        {/* Données structurées JSON-LD */}
+        <JsonLd />
       </head>
-      <body className={`${dmSans.variable} ${playfair.variable}`}>
+
+      <body>
         <ThemeProvider>
-          <ClientAnimations />
+          {/* Lien d'évitement pour l'accessibilité */}
+          <a href="#main-content" className="skip-link">
+            Aller au contenu principal
+          </a>
+
           <Header />
-          <main>{children}</main>
+
+          <main id="main-content" role="main">
+            {children}
+          </main>
+
           <Footer />
+
           <WhatsAppWidget />
+          <BackToTop />
         </ThemeProvider>
       </body>
     </html>

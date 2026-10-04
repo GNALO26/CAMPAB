@@ -1,191 +1,313 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import { Target, Scale, Users, HeartHandshake, Briefcase, GraduationCap, Award } from "lucide-react";
-import SectionTitle from "@/components/ui/SectionTitle";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { site } from "@/lib/site";
+// app/cabinet/page.tsx
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import {
+  HeartHandshake,
+  Scale,
+  Target,
+  Users,
+} from 'lucide-react'
+
+import SectionTitle from '@/components/ui/SectionTitle'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import { site } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: "Le Cabinet",
+  title: 'Le Cabinet',
   description:
-    "Découvrez le Cabinet CAMPAB à Cotonou : un cabinet juridique dédié à la médiation, à l'arbitrage OHADA et au conseil des entreprises et des particuliers. Un accompagnement humain, rigoureux et confidentiel.",
+    'Découvrez le Cabinet CAMPAB à Cotonou : un cabinet juridique dédié à la médiation, à l’arbitrage OHADA et au conseil des entreprises et des particuliers. Un accompagnement humain, rigoureux et confidentiel.',
   alternates: { canonical: `${site.url}/cabinet` },
-};
+}
 
 const engagements = [
   {
     icon: Target,
-    title: "Vision",
-    desc: "Transformer les conflits en solutions durables et équilibrées, en privilégiant toujours le dialogue et la préservation des relations.",
+    title: 'Vision',
+    desc: 'Transformer les conflits en solutions durables et équilibrées, en privilégiant toujours le dialogue et la préservation des relations.',
   },
   {
     icon: Scale,
-    title: "Rigueur",
-    desc: "Une analyse juridique précise, méthodique et documentée, fondée sur la maîtrise des Actes uniformes OHADA et du droit béninois.",
+    title: 'Rigueur',
+    desc: 'Une analyse juridique précise, méthodique et documentée, fondée sur la maîtrise des Actes uniformes OHADA et du droit béninois.',
   },
   {
     icon: Users,
-    title: "Proximité",
-    desc: "Une relation fondée sur la confiance, l'écoute active et une disponibilité constante pour chaque client.",
+    title: 'Proximité',
+    desc: 'Une relation fondée sur la confiance, l’écoute active et une disponibilité constante pour chaque client.',
   },
   {
     icon: HeartHandshake,
-    title: "Engagement",
-    desc: "Une implication personnelle dans chaque dossier, du premier entretien jusqu'à l'exécution de la solution.",
+    title: 'Engagement',
+    desc: 'Une implication personnelle dans chaque dossier, du premier entretien jusqu’à l’exécution de la solution.',
   },
-];
+]
 
 const parcours = [
   {
-    periode: "2011 à nos jours",
-    poste: "Assistante et Collaboratrice-Juriste",
-    lieu: "Cabinet d'Avocats Maître Issiaka MOUSTAFA, Cotonou",
-    description: "Consultations et avis juridiques. Rédaction d'actes et documents juridiques (conventions, contrats, statuts de sociétés, conclusions, exploits d'huissier). Conseil et assistance des clients. Gestion des dossiers et archivage.",
+    periode: '2011 à nos jours',
+    poste: 'Assistante et Collaboratrice-Juriste',
+    lieu: 'Cabinet d’Avocats Maître Issiaka MOUSTAFA, Cotonou',
+    description:
+      'Consultations et avis juridiques. Rédaction d’actes et documents juridiques (conventions, contrats, statuts de sociétés, conclusions, exploits d’huissier). Conseil et assistance des clients. Gestion des dossiers et archivage.',
   },
   {
-    periode: "2024-2025",
-    poste: "Certificat en Arbitrage OHADA",
-    lieu: "ERSUMA (École Régionale Supérieure de la Magistrature)",
-    description: "Formation spécialisée en arbitrage dans l'espace OHADA, couvrant les procédures, la rédaction des sentences et l'exécution des décisions arbitrales.",
+    periode: '2024-2025',
+    poste: 'Certificat en Arbitrage OHADA',
+    lieu: 'ERSUMA (École Régionale Supérieure de la Magistrature)',
+    description:
+      'Formation spécialisée en arbitrage dans l’espace OHADA, couvrant les procédures, la rédaction des sentences et l’exécution des décisions arbitrales.',
   },
   {
-    periode: "2005 à nos jours",
-    poste: "Certificat en Médiation",
-    lieu: "Consensualis Multi-Doors",
-    description: "Formation continue en médiation professionnelle, incluant les techniques de négociation, la gestion des conflits et l'accompagnement des parties.",
+    periode: '2005 à nos jours',
+    poste: 'Certificat en Médiation',
+    lieu: 'Consensualis Multi-Doors',
+    description:
+      'Formation continue en médiation professionnelle, incluant les techniques de négociation, la gestion des conflits et l’accompagnement des parties.',
   },
   {
-    periode: "2017-2018",
-    poste: "Licence en Psychologie des organisations",
-    lieu: "Université d'Abomey-Calavi",
-    description: "Formation en cours, complétant l'expertise juridique par une meilleure compréhension des dynamiques humaines et organisationnelles.",
+    periode: '2017-2018',
+    poste: 'Licence en Psychologie des organisations',
+    lieu: 'Université d’Abomey-Calavi',
+    description:
+      'Formation en cours, complétant l’expertise juridique par une meilleure compréhension des dynamiques humaines et organisationnelles.',
   },
-];
+]
 
 export default function CabinetPage() {
   return (
     <>
-      <section className="bg-navy-deep py-20 relative overflow-hidden">
-        <div className="deco-circle -top-40 right-0 w-[600px] h-[600px] opacity-30" />
-        <div className="container-x relative">
-          <span className="inline-block text-xs font-semibold tracking-[0.3em] uppercase text-olive-light mb-4">
-            Le Cabinet
-          </span>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-white max-w-3xl leading-tight">
-            Un cabinet juridique de conviction.
-          </h1>
-          <p className="mt-6 text-sky/90 text-lg max-w-2xl leading-relaxed">
-            {site.signature}
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 lg:py-24">
-        <div className="container-x grid lg:grid-cols-2 gap-14 items-center">
-          <div className="relative aspect-[5/4] rounded-card overflow-hidden border border-line shadow-card">
-            <Image
-              src="/images/cabinet.jpg"
-              alt="Cabinet CAMPAB à Cotonou"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-          </div>
-          <div>
-            <SectionTitle
-              align="left"
-              label="Notre histoire"
-              title="Le droit au service des personnes."
-            />
-            <p className="mt-6 text-ink-soft leading-relaxed">
-              Fondé à Cotonou par Sètondji Prudencia ABODE, le Cabinet CAMPAB
-              réunit une pratique exigeante du droit et une attention constante
-              portée à l&apos;humain. Nous accompagnons entreprises, institutions
-              et particuliers dans la prévention, la négociation et la résolution
-              de leurs différends.
-            </p>
-            <p className="mt-4 text-ink-soft leading-relaxed">
-              Notre approche conjugue la précision technique des Actes uniformes
-              OHADA et la souplesse des mécanismes alternatifs de règlement :
-              médiation, conciliation et arbitrage. Cette double compétence nous
-              permet de proposer la solution la plus adaptée à chaque situation.
-            </p>
-            <p className="mt-4 text-ink-soft leading-relaxed">
-              Basé à Cotonou, le cabinet intervient dans tout l&apos;espace OHADA
-              et accompagne ses clients dans leurs démarches juridiques et
-              judiciaires, au Bénin comme dans les États membres de
-              l&apos;organisation.
-            </p>
-            <div className="mt-8">
-              <Button href="/contact">Prendre rendez-vous</Button>
+      {/* En-tête de page */}
+      <section className="page-header" aria-labelledby="cabinet-title">
+        <div className="page-header__bg" aria-hidden="true" />
+        <div className="container">
+          <div className="page-header__inner">
+            <div>
+              <div className="eyebrow eyebrow--white">Le cabinet</div>
+              <h1 id="cabinet-title" className="page-header__title">
+                Un cabinet juridique de conviction.
+              </h1>
+            </div>
+            <div>
+              <p className="page-header__desc">
+                {site.signature} Un cabinet dédié à la médiation, à l’arbitrage
+                OHADA et au conseil, au service des entreprises, des
+                institutions et des particuliers.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-sky/40 py-20">
-        <div className="container-x">
+      {/* Présentation */}
+      <section className="section">
+        <div className="container">
+          <div
+            style={{
+              display: 'grid',
+              gap: 'var(--sp-12)',
+              alignItems: 'center',
+            }}
+            className="lg:grid-cols-2"
+          >
+            <div
+              style={{
+                position: 'relative',
+                aspectRatio: '5 / 4',
+                borderRadius: 'var(--r-lg)',
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-card)',
+              }}
+            >
+              <Image
+                src="/images/cabinet.jpg"
+                alt="Locaux du Cabinet CAMPAB à Cotonou"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
+
+            <div>
+              <SectionTitle
+                align="left"
+                label="Notre histoire"
+                title="Le droit au service des personnes."
+              />
+              <p style={{ marginTop: 'var(--sp-6)' }}>
+                Fondé à Cotonou par Sètondji Prudencia ABODE, le Cabinet CAMPAB
+                réunit une pratique exigeante du droit et une attention constante
+                portée à l’humain. Nous accompagnons entreprises, institutions
+                et particuliers dans la prévention, la négociation et la
+                résolution de leurs différends.
+              </p>
+              <p style={{ marginTop: 'var(--sp-4)' }}>
+                Notre approche conjugue la précision technique des Actes
+                uniformes OHADA et la souplesse des mécanismes alternatifs de
+                règlement : médiation, conciliation et arbitrage. Cette double
+                compétence nous permet de proposer la solution la plus adaptée à
+                chaque situation.
+              </p>
+              <p style={{ marginTop: 'var(--sp-4)' }}>
+                Basé à Cotonou, le cabinet intervient dans tout l’espace OHADA et
+                accompagne ses clients dans leurs démarches juridiques et
+                judiciaires, au Bénin comme dans les États membres de
+                l’organisation.
+              </p>
+              <div style={{ marginTop: 'var(--sp-8)' }}>
+                <Button href="/contact" variant="primary">
+                  Prendre rendez-vous
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Engagements */}
+      <section className="section section--soft">
+        <div className="container">
           <SectionTitle
             label="Nos engagements"
             title="Quatre principes qui guident chacune de nos décisions."
           />
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {engagements.map((e) => {
-              const Icon = e.icon;
+          <div
+            style={{
+              marginTop: 'var(--sp-14)',
+              display: 'grid',
+              gap: 'var(--sp-6)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            }}
+          >
+            {engagements.map((engagement) => {
+              const Icon = engagement.icon
               return (
-                <Card key={e.title}>
-                  <div className="w-12 h-12 rounded-full bg-sky flex items-center justify-center mb-5">
-                    <Icon size={20} className="text-navy-deep" />
+                <Card key={engagement.title} hover>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'var(--accent-soft)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 'var(--sp-5)',
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    <Icon size={20} aria-hidden="true" />
                   </div>
-                  <h3 className="font-serif text-lg text-navy-deep mb-2">{e.title}</h3>
-                  <p className="text-sm text-ink-soft leading-relaxed">{e.desc}</p>
+                  <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                    {engagement.title}
+                  </h3>
+                  <p className="service-card__desc">{engagement.desc}</p>
                 </Card>
-              );
+              )
             })}
           </div>
         </div>
       </section>
 
-      <section className="py-20">
-        <div className="container-x">
+      {/* Parcours */}
+      <section className="section">
+        <div className="container">
           <SectionTitle
             label="Parcours"
-            title="L'expérience au service de vos dossiers."
+            title="L’expérience au service de vos dossiers."
             subtitle="Un parcours de plus de dix ans au service des entreprises et des particuliers."
           />
-          <div className="mt-14 space-y-8 max-w-4xl mx-auto">
-            {parcours.map((p, i) => (
-              <div key={i} className="relative pl-8 border-l-2 border-olive/30">
-                <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-olive" />
-                <p className="text-xs font-mono text-olive tracking-widest mb-2">
-                  {p.periode}
+
+          <div
+            style={{
+              marginTop: 'var(--sp-14)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--sp-8)',
+              maxWidth: '56rem',
+              marginInline: 'auto',
+            }}
+          >
+            {parcours.map((item) => (
+              <div key={`${item.periode}-${item.poste}`} className="timeline-item" style={{ gridTemplateColumns: '1fr', paddingLeft: 'var(--sp-8)', paddingBottom: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: -4,
+                    top: 6,
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    background: 'var(--accent-green)',
+                  }}
+                />
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    color: 'var(--accent-green)',
+                    marginBottom: 'var(--sp-2)',
+                  }}
+                >
+                  {item.periode}
                 </p>
-                <h3 className="font-serif text-xl text-navy-deep mb-1">{p.poste}</h3>
-                <p className="text-sm font-medium text-olive mb-2">{p.lieu}</p>
-                <p className="text-sm text-ink-soft leading-relaxed">{p.description}</p>
+                <h3
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'var(--text-xl)',
+                    color: 'var(--text-900)',
+                    marginBottom: 'var(--sp-1)',
+                  }}
+                >
+                  {item.poste}
+                </h3>
+                <p
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    color: 'var(--accent)',
+                    marginBottom: 'var(--sp-2)',
+                  }}
+                >
+                  {item.lieu}
+                </p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75 }}>
+                  {item.description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-navy-deep py-20">
-        <div className="container-x text-center max-w-3xl mx-auto">
-          <h2 className="font-serif text-3xl text-white">
-            Besoin d&apos;un accompagnement juridique ?
-          </h2>
-          <p className="text-sky/80 mt-4 leading-relaxed">
-            Que vous soyez une entreprise, une institution ou un particulier,
-            nous vous aidons à trouver la solution la plus adaptée à votre situation.
-          </p>
-          <div className="mt-8">
-            <Button href="/contact" variant="olive" size="lg">
-              Prendre rendez-vous
-            </Button>
+      {/* CTA */}
+      <section className="section">
+        <div className="container">
+          <div className="cta-block">
+            <div className="cta-block__geo cta-block__geo--1" aria-hidden="true" />
+            <div className="cta-block__geo cta-block__geo--2" aria-hidden="true" />
+            <div className="cta-block__inner">
+              <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 3rem)' }}>
+                Besoin d’un accompagnement juridique ?
+              </h2>
+              <p style={{ marginTop: 'var(--sp-5)', color: 'rgba(255,255,255,0.8)', maxWidth: '44ch', marginInline: 'auto' }}>
+                Que vous soyez une entreprise, une institution ou un particulier,
+                nous vous aidons à trouver la solution la plus adaptée à votre
+                situation.
+              </p>
+              <div style={{ marginTop: 'var(--sp-8)' }}>
+                <Button href="/contact" variant="olive" size="lg">
+                  Prendre rendez-vous
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
     </>
-  );
+  )
 }

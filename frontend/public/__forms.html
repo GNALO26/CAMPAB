@@ -2,40 +2,35 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Formulaires Netlify</title>
+  <title>Déclaration des formulaires Netlify</title>
 </head>
 <body>
-
-  <!-- Formulaire de contact -->
   <form name="campab-contact" data-netlify="true" hidden>
     <input type="hidden" name="form-name" value="campab-contact" />
-    <input type="text" name="prenom" />
-    <input type="text" name="nom" />
+    <input type="text" name="firstName" />
+    <input type="text" name="lastName" />
     <input type="email" name="email" />
-    <input type="tel" name="telephone" />
-    <input type="text" name="pays" />
-    <input type="text" name="organisation" />
-    <select name="service"></select>
-    <input type="text" name="urgence" />
+    <input type="tel" name="phone" />
+    <input type="text" name="subject" />
     <textarea name="message"></textarea>
-    <input type="checkbox" name="consentement" />
+    <input type="text" name="website" />
   </form>
 
-  <!-- Formulaire de rendez-vous -->
   <form name="campab-rdv" data-netlify="true" hidden>
     <input type="hidden" name="form-name" value="campab-rdv" />
     <input type="text" name="typeService" />
     <input type="text" name="urgence" />
     <textarea name="description"></textarea>
-    <input type="text" name="prenom" />
-    <input type="text" name="nom" />
+    <input type="text" name="firstName" />
+    <input type="text" name="lastName" />
     <input type="email" name="email" />
-    <input type="tel" name="telephone" />
+    <input type="tel" name="phone" />
     <input type="text" name="organisation" />
-    <input type="text" name="pays" />
-    <input type="text" name="date" />
-    <input type="text" name="heure" />
+    <input type="text" name="country" />
+    <input type="text" name="preferredDate" />
+    <input type="text" name="preferredTime" />
+    <input type="checkbox" name="consent" />
+    <input type="text" name="website" />
   </form>
-
 </body>
 </html>
