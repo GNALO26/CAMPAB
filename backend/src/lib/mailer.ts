@@ -1,41 +1,155 @@
 ﻿// backend/src/lib/mailer.ts
-import nodemailer from "nodemailer";
 import { env } from "./env.js";
 import { generatePdf } from "./pdf.js";
 
 /* ============================================================
-   Transporteur SMTP (Gmail)
+   Authentification Gmail API (OAuth 2.0)
+   Obtient un access token depuis le refresh token.
    ============================================================ */
-let transporter: nodemailer.Transporter | null = null;
+let cachedAccessToken: string | null = null;
+let accessTokenExpiresAt = 0;
 
-function getTransporter(): nodemailer.Transporter {
-  if (transporter) return transporter;
+async function getAccessToken(): Promise<string> {
+  const now = Date.now();
 
-  console.log("[mailer] Configuration du transporteur :", {
-    hasEmailUser: Boolean(env.EMAIL_USER),
-    hasEmailPass: Boolean(env.EMAIL_PASS),
-    from: env.EMAIL_FROM,
-  });
-
-  if (!env.EMAIL_USER || !env.EMAIL_PASS) {
-    throw new Error(
-      "Configuration email manquante : EMAIL_USER et EMAIL_PASS doivent être définis."
-    );
+  /* Utilise le cache si le token est encore valide (avec marge de 60 s) */
+  if (cachedAccessToken && now < accessTokenExpiresAt - 60_000) {
+    return cachedAccessToken;
   }
 
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: env.EMAIL_USER,
-      pass: env.EMAIL_PASS,
-    },
+  console.log("[mailer] Obtention d'un nouveau access token Gmail...");
+
+  const body = new URLSearchParams({
+    client_id: env.GMAIL_CLIENT_ID,
+    client_secret: env.GMAIL_CLIENT_SECRET,
+    refresh_token: env.GMAIL_REFRESH_TOKEN,
+    grant_type: "refresh_token",
   });
 
-  return transporter;
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("[mailer] Échec obtention access token :", error);
+    throw new Error(`Échec authentification Gmail : ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
+
+  cachedAccessToken = data.access_token;
+  accessTokenExpiresAt = now + data.expires_in * 1000;
+
+  console.log("[mailer] Access token obtenu, expire dans", data.expires_in, "s");
+
+  return data.access_token;
 }
 
 /* ============================================================
-   Labels lisibles pour les emails
+   Envoi d'un email via Gmail API (HTTP natif)
+   ============================================================ */
+interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
+interface SendMailOptions {
+  to: string;
+  replyTo?: string;
+  subject: string;
+  html: string;
+  attachments?: MailAttachment[];
+}
+
+function encodeSubject(subject: string): string {
+  return `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+}
+
+function buildMimeMessage(options: SendMailOptions): string {
+  const boundary = `campab-boundary-${Date.now()}`;
+  const senderEmail = env.GMAIL_SENDER_EMAIL;
+
+  const lines: string[] = [];
+
+  lines.push(`From: CAMPAB <${senderEmail}>`);
+  lines.push(`To: ${options.to}`);
+  if (options.replyTo) lines.push(`Reply-To: ${options.replyTo}`);
+  lines.push(`Subject: ${encodeSubject(options.subject)}`);
+  lines.push(`MIME-Version: 1.0`);
+
+  if (options.attachments && options.attachments.length > 0) {
+    lines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+    lines.push(``);
+    lines.push(`--${boundary}`);
+    lines.push(`Content-Type: text/html; charset="UTF-8"`);
+    lines.push(`Content-Transfer-Encoding: base64`);
+    lines.push(``);
+    lines.push(Buffer.from(options.html, "utf-8").toString("base64"));
+    lines.push(``);
+
+    for (const att of options.attachments) {
+      lines.push(`--${boundary}`);
+      lines.push(`Content-Type: ${att.contentType}; name="${att.filename}"`);
+      lines.push(`Content-Disposition: attachment; filename="${att.filename}"`);
+      lines.push(`Content-Transfer-Encoding: base64`);
+      lines.push(``);
+      lines.push(att.content.toString("base64"));
+    }
+
+    lines.push(`--${boundary}--`);
+  } else {
+    lines.push(`Content-Type: text/html; charset="UTF-8"`);
+    lines.push(`Content-Transfer-Encoding: base64`);
+    lines.push(``);
+    lines.push(Buffer.from(options.html, "utf-8").toString("base64"));
+  }
+
+  return lines.join("\r\n");
+}
+
+async function sendMail(options: SendMailOptions): Promise<void> {
+  const accessToken = await getAccessToken();
+
+  const mimeMessage = buildMimeMessage(options);
+
+  /* Encodage base64url obligatoire pour Gmail API */
+  const raw = Buffer.from(mimeMessage)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  const response = await fetch(
+    "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("[mailer] Échec envoi Gmail :", error);
+    throw new Error(`Échec envoi email : ${response.status}`);
+  }
+
+  const result = (await response.json()) as { id: string };
+  console.log(`[mailer] Email envoyé à ${options.to}, ID Gmail : ${result.id}`);
+}
+
+/* ============================================================
+   Labels lisibles
    ============================================================ */
 const SERVICE_LABELS: Record<string, string> = {
   consultation: "Consultation juridique",
@@ -92,9 +206,6 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/* ============================================================
-   Habillage HTML commun
-   ============================================================ */
 function wrapHtml(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${title}</title></head>
@@ -111,11 +222,9 @@ function wrapHtml(title: string, body: string): string {
           <strong style="color:#17212B;">Cabinet Sètondji Prudencia ABODE</strong><br />
           Cotonou, Bénin<br />
           Téléphone : 01 97 76 29 36<br />
-          Email : <a href="mailto:p.abodecabinet@gmail.com" style="color:#5A8F32;text-decoration:none;">p.abodecabinet@gmail.com</a><br />
-          Site : <a href="https://cam-pab.com" style="color:#5A8F32;text-decoration:none;">cam-pab.com</a>
+          Email : <a href="mailto:p.abodecabinet@gmail.com" style="color:#5A8F32;text-decoration:none;">p.abodecabinet@gmail.com</a>
         </td></tr>
       </table>
-      <div style="font-size:10px;color:#8B959F;margin-top:16px;text-align:center;">Message confidentiel, protégé par le secret professionnel.</div>
     </td></tr>
   </table>
 </body></html>`;
@@ -125,14 +234,13 @@ function wrapHtml(title: string, body: string): string {
    CONTACT
    ============================================================ */
 export async function sendContactNotification(contact: any) {
-  console.log("[mailer] Envoi notification contact à l'admin :", contact.email);
+  console.log("[mailer] Notification contact :", contact.email);
 
   const fullName = `${contact.firstName ?? ""} ${
     contact.lastName ?? contact.name ?? ""
   }`.trim();
 
-  await getTransporter().sendMail({
-    from: env.EMAIL_FROM,
+  await sendMail({
     to: "p.abodecabinet@gmail.com",
     replyTo: contact.email,
     subject: `[Contact] ${contact.subject} : ${fullName}`,
@@ -140,53 +248,27 @@ export async function sendContactNotification(contact: any) {
       "Nouveau message de contact",
       `
       <h1 style="margin:0 0 8px 0;font-size:20px;color:#071A2C;">Nouveau message de contact</h1>
-      <p style="margin:0 0 24px 0;font-size:13px;color:#5D6872;">Reçu le ${formatDateTime(
-        new Date()
-      )}</p>
+      <p style="margin:0 0 24px 0;font-size:13px;color:#5D6872;">Reçu le ${formatDateTime(new Date())}</p>
       <table role="presentation" width="100%" style="font-size:13px;color:#17212B;">
-        <tr><td style="padding:8px 0;color:#5D6872;width:140px;">Nom complet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(
-          fullName
-        )}</td></tr>
-        <tr><td style="padding:8px 0;color:#5D6872;">Email</td><td style="padding:8px 0;"><a href="mailto:${escapeHtml(
-          contact.email
-        )}" style="color:#5A8F32;">${escapeHtml(contact.email)}</a></td></tr>
-        ${
-          contact.phone
-            ? `<tr><td style="padding:8px 0;color:#5D6872;">Téléphone</td><td style="padding:8px 0;">${escapeHtml(
-                contact.phone
-              )}</td></tr>`
-            : ""
-        }
-        <tr><td style="padding:8px 0;color:#5D6872;">Objet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(
-          contact.subject
-        )}</td></tr>
+        <tr><td style="padding:8px 0;color:#5D6872;width:140px;">Nom complet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(fullName)}</td></tr>
+        <tr><td style="padding:8px 0;color:#5D6872;">Email</td><td style="padding:8px 0;">${escapeHtml(contact.email)}</td></tr>
+        ${contact.phone ? `<tr><td style="padding:8px 0;color:#5D6872;">Téléphone</td><td style="padding:8px 0;">${escapeHtml(contact.phone)}</td></tr>` : ""}
+        <tr><td style="padding:8px 0;color:#5D6872;">Objet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(contact.subject)}</td></tr>
       </table>
       <div style="margin-top:20px;padding:16px;background:#F8FAF9;border-left:3px solid #5A8F32;border-radius:6px;">
         <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Message</div>
-        <div style="font-size:13px;color:#17212B;white-space:pre-wrap;line-height:1.7;">${escapeHtml(
-          contact.message
-        )}</div>
+        <div style="font-size:13px;color:#17212B;white-space:pre-wrap;line-height:1.7;">${escapeHtml(contact.message)}</div>
       </div>
-      <div style="margin-top:24px;"><a href="mailto:${escapeHtml(
-        contact.email
-      )}?subject=Re:%20${encodeURIComponent(
-        contact.subject
-      )}" style="display:inline-block;background:#0B2942;color:#FFFFFF;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;">Répondre</a></div>
       `
     ),
   });
-
-  console.log("[mailer] Notification contact envoyée avec succès");
 }
 
 /* ============================================================
    RENDEZ-VOUS
    ============================================================ */
 export async function sendAppointmentEmails(appointment: any) {
-  console.log(
-    "[mailer] Préparation des emails pour le RDV :",
-    appointment.reference
-  );
+  console.log("[mailer] Préparation des emails pour le RDV :", appointment.reference);
 
   const fullName = `${appointment.firstName} ${appointment.lastName}`.trim();
   const serviceText = getServiceLabel(appointment.typeService);
@@ -194,7 +276,6 @@ export async function sendAppointmentEmails(appointment: any) {
   const dateText = formatDateLong(appointment.preferredDate);
   const timeText = appointment.preferredTime || "À définir avec le cabinet";
 
-  /* Génération du PDF */
   let pdfBuffer: Buffer | null = null;
   try {
     pdfBuffer = await generatePdf({
@@ -204,88 +285,63 @@ export async function sendAppointmentEmails(appointment: any) {
         { label: "Client", value: fullName },
         { label: "Email", value: appointment.email },
         { label: "Téléphone", value: appointment.phone },
-        {
-          label: "Organisation",
-          value: appointment.organisation || "Non précisée",
-        },
+        { label: "Organisation", value: appointment.organisation || "Non précisée" },
         { label: "Pays", value: appointment.country || "Non précisé" },
         { label: "Nature", value: serviceText },
         { label: "Urgence", value: urgenceText },
         { label: "Date souhaitée", value: dateText },
         { label: "Heure souhaitée", value: timeText },
-        { label: "Statut", value: appointment.status || "En attente" },
       ],
       footer: "CAMPAB, 01 97 76 29 36, p.abodecabinet@gmail.com",
     });
     console.log("[mailer] PDF généré, taille :", pdfBuffer.length, "octets");
   } catch (error) {
-    console.error("[mailer] Échec de génération du PDF :", error);
+    console.error("[mailer] Échec PDF :", error);
   }
 
   const attachments = pdfBuffer
     ? [
         {
-          filename: `confirmation-rdv-${
-            appointment.reference || appointment._id
-          }.pdf`,
+          filename: `confirmation-rdv-${appointment.reference || appointment._id}.pdf`,
           content: pdfBuffer,
           contentType: "application/pdf",
         },
       ]
     : [];
 
-  /* Email au client */
   try {
-    await getTransporter().sendMail({
-      from: env.EMAIL_FROM,
+    await sendMail({
       to: appointment.email,
       replyTo: "p.abodecabinet@gmail.com",
-      subject: `Confirmation de votre demande de rendez-vous : ${
-        appointment.reference || "CAMPAB"
-      }`,
+      subject: `Confirmation de votre demande de rendez-vous : ${appointment.reference || "CAMPAB"}`,
       html: wrapHtml(
         "Confirmation de rendez-vous",
         `
         <h1 style="margin:0 0 16px 0;font-size:22px;color:#071A2C;">Votre demande de rendez-vous est enregistrée</h1>
-        <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${escapeHtml(
-          appointment.firstName
-        )},</p>
-        <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Nous avons bien reçu votre demande. Le cabinet vous recontactera sous 24 à 48 heures ouvrées pour confirmer la date et l'heure définitives.</p>
+        <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${escapeHtml(appointment.firstName)},</p>
+        <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Nous avons bien reçu votre demande. Le cabinet vous recontactera sous 24 à 48 heures ouvrées.</p>
         <div style="padding:16px;background:#F8FAF9;border-left:3px solid #5A8F32;border-radius:6px;margin:20px 0;">
           <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Référence</div>
-          <div style="font-size:18px;color:#071A2C;font-weight:700;letter-spacing:0.05em;margin-bottom:14px;">${escapeHtml(
-            appointment.reference || "N/A"
-          )}</div>
+          <div style="font-size:18px;color:#071A2C;font-weight:700;margin-bottom:14px;">${escapeHtml(appointment.reference || "N/A")}</div>
           <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Nature</div>
-          <div style="font-size:13px;color:#17212B;font-weight:600;margin-bottom:14px;">${escapeHtml(
-            serviceText
-          )}</div>
+          <div style="font-size:13px;color:#17212B;font-weight:600;margin-bottom:14px;">${escapeHtml(serviceText)}</div>
           <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Date souhaitée</div>
-          <div style="font-size:13px;color:#17212B;margin-bottom:14px;">${escapeHtml(
-            dateText
-          )}</div>
+          <div style="font-size:13px;color:#17212B;margin-bottom:14px;">${escapeHtml(dateText)}</div>
           <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Heure souhaitée</div>
           <div style="font-size:13px;color:#17212B;">${escapeHtml(timeText)}</div>
         </div>
-        <p style="margin:20px 0 0 0;font-size:13px;color:#5D6872;line-height:1.7;">Le récapitulatif complet est joint en PDF. Conservez-le, il contient votre référence de dossier.</p>
         <p style="margin:24px 0 0 0;font-size:14px;color:#17212B;">Cordialement,<br /><strong>Cabinet CAMPAB</strong></p>
         `
       ),
       attachments,
     });
-    console.log(
-      "[mailer] Email de confirmation envoyé au client :",
-      appointment.email
-    );
   } catch (error) {
-    console.error("[mailer] Échec de l'envoi au client :", error);
+    console.error("[mailer] Échec email client :", error);
     throw error;
   }
 
-  /* Email à l'admin (la juriste) */
   try {
-    await getTransporter().sendMail({
-      from: env.EMAIL_FROM,
+    await sendMail({
       to: "p.abodecabinet@gmail.com",
       replyTo: appointment.email,
       subject: `[Rendez-vous] ${appointment.reference} : ${fullName}`,
@@ -293,62 +349,27 @@ export async function sendAppointmentEmails(appointment: any) {
         "Nouvelle demande de rendez-vous",
         `
         <h1 style="margin:0 0 8px 0;font-size:20px;color:#071A2C;">Nouvelle demande de rendez-vous</h1>
-        <p style="margin:0 0 24px 0;font-size:13px;color:#5D6872;">Référence <strong style="color:#0B2942;">${escapeHtml(
-          appointment.reference || "N/A"
-        )}</strong>, reçue le ${formatDateTime(
-          appointment.createdAt || new Date()
-        )}</p>
+        <p style="margin:0 0 24px 0;font-size:13px;color:#5D6872;">Référence <strong>${escapeHtml(appointment.reference || "N/A")}</strong>, reçue le ${formatDateTime(appointment.createdAt || new Date())}</p>
         <table role="presentation" width="100%" style="font-size:13px;color:#17212B;">
-          <tr><td style="padding:8px 0;color:#5D6872;width:140px;">Nom complet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(
-            fullName
-          )}</td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Email</td><td style="padding:8px 0;"><a href="mailto:${escapeHtml(
-            appointment.email
-          )}" style="color:#5A8F32;">${escapeHtml(appointment.email)}</a></td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Téléphone</td><td style="padding:8px 0;"><a href="tel:${escapeHtml(
-            appointment.phone
-          )}" style="color:#5A8F32;">${escapeHtml(appointment.phone)}</a></td></tr>
-          ${
-            appointment.organisation
-              ? `<tr><td style="padding:8px 0;color:#5D6872;">Organisation</td><td style="padding:8px 0;">${escapeHtml(
-                  appointment.organisation
-                )}</td></tr>`
-              : ""
-          }
-          <tr><td style="padding:8px 0;color:#5D6872;">Pays</td><td style="padding:8px 0;">${escapeHtml(
-            appointment.country || "Non précisé"
-          )}</td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Nature</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(
-            serviceText
-          )}</td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Urgence</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(
-            urgenceText
-          )}</td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Date souhaitée</td><td style="padding:8px 0;">${escapeHtml(
-            dateText
-          )}</td></tr>
-          <tr><td style="padding:8px 0;color:#5D6872;">Heure souhaitée</td><td style="padding:8px 0;">${escapeHtml(
-            timeText
-          )}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;width:140px;">Nom complet</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(fullName)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Email</td><td style="padding:8px 0;">${escapeHtml(appointment.email)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Téléphone</td><td style="padding:8px 0;">${escapeHtml(appointment.phone)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Nature</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(serviceText)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Urgence</td><td style="padding:8px 0;font-weight:600;">${escapeHtml(urgenceText)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Date</td><td style="padding:8px 0;">${escapeHtml(dateText)}</td></tr>
+          <tr><td style="padding:8px 0;color:#5D6872;">Heure</td><td style="padding:8px 0;">${escapeHtml(timeText)}</td></tr>
         </table>
         <div style="margin-top:20px;padding:16px;background:#F8FAF9;border-left:3px solid #5A8F32;border-radius:6px;">
           <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Description du litige</div>
-          <div style="font-size:13px;color:#17212B;white-space:pre-wrap;line-height:1.7;">${escapeHtml(
-            appointment.description || "Non précisée"
-          )}</div>
+          <div style="font-size:13px;color:#17212B;white-space:pre-wrap;line-height:1.7;">${escapeHtml(appointment.description || "Non précisée")}</div>
         </div>
-        <div style="margin-top:24px;"><a href="mailto:${escapeHtml(
-          appointment.email
-        )}?subject=Re:%20${encodeURIComponent(
-          "Confirmation de rendez-vous " + appointment.reference
-        )}" style="display:inline-block;background:#0B2942;color:#FFFFFF;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;">Répondre au client</a></div>
         `
       ),
       attachments,
     });
-    console.log("[mailer] Notification envoyée à l'admin");
+    console.log("[mailer] Notification admin envoyée");
   } catch (error) {
-    console.error("[mailer] Échec de l'envoi à l'admin :", error);
+    console.error("[mailer] Échec email admin :", error);
     throw error;
   }
 }
