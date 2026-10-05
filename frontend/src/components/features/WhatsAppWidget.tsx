@@ -1,10 +1,11 @@
 ﻿// src/components/features/WhatsAppWidget.tsx
 'use client'
 
+import { useEffect, useState } from 'react'
 import { site } from '@/lib/site'
 
 const DEFAULT_MESSAGE =
-  'Bonjour, je souhaite obtenir des informations sur les services du cabinet.'
+  'Bonjour, je souhaite obtenir des informations sur les services du cabinet CAMPAB.'
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -22,13 +23,58 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 export default function WhatsAppWidget() {
-  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
-    DEFAULT_MESSAGE,
-  )}`
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const rawNumber = (site.contact.whatsapp || '').replace(/\D/g, '')
+
+  const message = encodeURIComponent(DEFAULT_MESSAGE)
+
+  // Deux liens de fallback : wa.me (mobile) et api.whatsapp.com (desktop)
+  const waMeUrl = `https://wa.me/${rawNumber}?text=${message}`
+  const apiUrl = `https://api.whatsapp.com/send?phone=${rawNumber}&text=${message}`
+
+  function handleClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+
+    // Détection mobile : tentative d'ouverture directe de l'application WhatsApp
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+    // En desktop, on utilise api.whatsapp.com qui ouvre WhatsApp Web correctement
+    const targetUrl = isMobile ? waMeUrl : apiUrl
+
+    const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer')
+
+    // Si le navigateur bloque la fenêtre (popup blocker), on tente une redirection directe
+    if (!newWindow) {
+      window.location.href = targetUrl
+    }
+  }
+
+  if (!isMounted) {
+    // Rendu serveur : on affiche le lien statique (utilisable même sans JS)
+    return (
+      <a
+        href={apiUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whatsapp-widget"
+        aria-label="Contacter le cabinet sur WhatsApp"
+        title="Discuter sur WhatsApp"
+      >
+        <span className="whatsapp-widget__label">Discuter sur WhatsApp</span>
+        <WhatsAppIcon className="whatsapp-widget__icon" />
+      </a>
+    )
+  }
 
   return (
     <a
-      href={whatsappUrl}
+      href={apiUrl}
+      onClick={handleClick}
       target="_blank"
       rel="noopener noreferrer"
       className="whatsapp-widget"

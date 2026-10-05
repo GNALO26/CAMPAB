@@ -20,33 +20,65 @@ function buildReference(date: Date): string {
   const d = String(date.getDate()).padStart(2, '0')
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let suffix = ''
-  for (let i = 0; i < 4; i += 1) suffix += alphabet[Math.floor(Math.random() * alphabet.length)]
+  for (let i = 0; i < 4; i += 1)
+    suffix += alphabet[Math.floor(Math.random() * alphabet.length)]
   return `CAMPAB-RDV-${y}${m}${d}-${suffix}`
 }
 
 export async function POST(request: Request) {
+  console.log('[api/rdv] Nouvelle requête reçue')
+
   let payload: unknown
   try {
     payload = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Requête invalide : le corps doit être un JSON valide.' }, { status: 400 })
+  } catch (error) {
+    console.error('[api/rdv] Corps de requête invalide :', error)
+    return NextResponse.json(
+      { error: 'Requête invalide : le corps doit être un JSON valide.' },
+      { status: 400 },
+    )
   }
 
   /* Honeypot */
   const honey = (payload as { website?: string } | null)?.website
   if (typeof honey === 'string' && honey.trim().length > 0) {
-    return NextResponse.json({ ok: true, id: 'ignored', reference: 'CAMPAB-RDV-IGNORED', message: 'Votre demande a bien été reçue.' }, { status: 200 })
+    console.warn('[api/rdv] Honeypot déclenché, requête ignorée')
+    return NextResponse.json(
+      {
+        ok: true,
+        id: 'ignored',
+        reference: 'CAMPAB-RDV-IGNORED',
+        message: 'Votre demande a bien été reçue.',
+      },
+      { status: 200 },
+    )
   }
 
   const parsed = appointmentSchema.safeParse(payload)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Certains champs sont invalides.', details: parsed.error.flatten().fieldErrors }, { status: 422 })
+    console.warn(
+      '[api/rdv] Validation échouée :',
+      parsed.error.flatten().fieldErrors,
+    )
+    return NextResponse.json(
+      {
+        error: 'Certains champs sont invalides.',
+        details: parsed.error.flatten().fieldErrors,
+      },
+      { status: 422 },
+    )
   }
 
   const data = parsed.data
   const createdAt = new Date()
   const id = randomUUID()
   const reference = buildReference(createdAt)
+
+  console.log('[api/rdv] Données validées, génération du PDF', {
+    reference,
+    service: data.typeService,
+    urgence: data.urgence,
+  })
 
   /* Génération du PDF */
   let pdfBuffer: Buffer
@@ -66,17 +98,29 @@ export async function POST(request: Request) {
       preferredTime: data.preferredTime || null,
       createdAt,
     })
+    console.log('[api/rdv] PDF généré avec succès')
   } catch (error) {
     console.error('[api/rdv] Échec de génération du PDF :', error)
-    return NextResponse.json({ error: 'La confirmation n’a pas pu être générée. Réessayez dans un instant.' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error:
+          'La confirmation n’a pas pu être générée. Réessayez dans un instant.',
+      },
+      { status: 500 },
+    )
   }
 
-  /* Envoi des emails */
+  /* Vérification de la configuration email */
   if (!isMailConfigured()) {
-    console.error('[api/rdv] Configuration SMTP manquante.')
+    console.error(
+      '[api/rdv] Configuration SMTP manquante. Vérifiez les variables EMAIL_USER et EMAIL_PASS sur Netlify.',
+    )
     return NextResponse.json<CreateAppointmentResponse>({
-      ok: true, id, reference,
-      message: 'Votre demande est enregistrée. La confirmation par email est momentanément indisponible, mais votre PDF est prêt.',
+      ok: true,
+      id,
+      reference,
+      message:
+        'Votre demande est enregistrée. La confirmation par email est momentanément indisponible, mais votre PDF est prêt.',
       pdfBase64: pdfBuffer.toString('base64'),
     })
   }
@@ -98,16 +142,34 @@ export async function POST(request: Request) {
     pdfBuffer,
   }
 
+  console.log('[api/rdv] Envoi des emails...')
   const results = await Promise.allSettled([
     sendAppointmentNotificationToAdmin(emailData),
     sendAppointmentConfirmationToClient(emailData),
   ])
+
+  results.forEach((result, index) => {
+    const label = index === 0 ? 'notification admin' : 'confirmation client'
+    if (result.status === 'fulfilled') {
+      console.log(`[api/rdv] Email ${label} envoyé avec succès`)
+    } else {
+      console.error(`[api/rdv] Échec de l'email ${label} :`, result.reason)
+    }
+  })
+
   const failures = results.filter((r) => r.status === 'rejected')
-  if (failures.length > 0) console.warn('[api/rdv] Certains emails n’ont pas pu être envoyés :', failures.map((f) => (f as PromiseRejectedResult).reason))
+  if (failures.length > 0) {
+    console.warn(
+      `[api/rdv] ${failures.length} email(s) n'ont pas pu être envoyés.`,
+    )
+  }
 
   return NextResponse.json<CreateAppointmentResponse>({
-    ok: true, id, reference,
-    message: 'Votre demande de rendez-vous a bien été enregistrée. Un email de confirmation vous a été envoyé.',
+    ok: true,
+    id,
+    reference,
+    message:
+      'Votre demande de rendez-vous a bien été enregistrée. Un email de confirmation vous a été envoyé.',
     pdfBase64: pdfBuffer.toString('base64'),
   })
 }

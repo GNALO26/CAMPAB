@@ -5,24 +5,42 @@ import { APPOINTMENT_SERVICES, APPOINTMENT_URGENCIES } from '@/lib/schemas'
 import type { AppointmentPdfData } from '@/lib/pdf'
 
 /* ============================================================
-   Configuration SMTP (Gmail via EMAIL_USER / EMAIL_PASS,
-   ou tout autre fournisseur via SMTP_*)
+   Configuration SMTP
    ============================================================ */
 const EMAIL_USER = process.env.EMAIL_USER
 const EMAIL_PASS = process.env.EMAIL_PASS
 const SMTP_HOST = process.env.SMTP_HOST
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587)
-const SMTP_FROM = process.env.SMTP_FROM ?? `${site.shortName} <${EMAIL_USER ?? 'no-reply@cam-pab.com'}>`
+const SMTP_FROM =
+  process.env.SMTP_FROM ??
+  process.env.EMAIL_FROM ??
+  `${site.shortName} <${EMAIL_USER ?? 'no-reply@cam-pab.com'}>`
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'p.abodecabinet@gmail.com'
 
 let cached: Transporter | null = null
 
+function logConfig(): void {
+  console.log('[mail] Configuration email :', {
+    hasEmailUser: Boolean(EMAIL_USER),
+    hasEmailPass: Boolean(EMAIL_PASS),
+    hasSmtpHost: Boolean(SMTP_HOST),
+    smtpPort: SMTP_PORT,
+    from: SMTP_FROM,
+    admin: ADMIN_EMAIL,
+  })
+}
+
 function getTransporter(): Transporter {
   if (cached) return cached
 
+  logConfig()
+
   /* Gmail explicite */
   if (!SMTP_HOST && EMAIL_USER && EMAIL_PASS) {
-    cached = nodemailer.createTransport({ service: 'gmail', auth: { user: EMAIL_USER, pass: EMAIL_PASS } })
+    cached = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+    })
     return cached
   }
 
@@ -37,7 +55,9 @@ function getTransporter(): Transporter {
     return cached
   }
 
-  throw new Error('Configuration SMTP manquante : renseignez EMAIL_USER et EMAIL_PASS, ou SMTP_HOST / SMTP_USER / SMTP_PASSWORD.')
+  throw new Error(
+    'Configuration SMTP manquante. Renseignez EMAIL_USER et EMAIL_PASS, ou SMTP_HOST, SMTP_PORT, EMAIL_USER et EMAIL_PASS.',
+  )
 }
 
 export function isMailConfigured(): boolean {
@@ -73,28 +93,47 @@ function wrapHtml(title: string, body: string): string {
 }
 
 function esc(v: string): string {
-  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+  return v
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function fmtDate(v: string | Date): string {
   const d = typeof v === 'string' ? new Date(v) : v
   if (Number.isNaN(d.getTime())) return ''
-  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d)
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
 }
 
 function fmtDateLong(v?: string | null): string {
   if (!v) return 'Non précisée'
   const d = new Date(v)
   if (Number.isNaN(d.getTime())) return 'Non précisée'
-  return new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d)
 }
 
-function labelOf(list: readonly { value: string; label: string }[], v: string): string {
+function labelOf(
+  list: readonly { value: string; label: string }[],
+  v: string,
+): string {
   return list.find((x) => x.value === v)?.label ?? v
 }
 
 /* ============================================================
-   CONTACT — 2 emails
+   CONTACT
    ============================================================ */
 export interface ContactEmailData {
   firstName: string
@@ -106,7 +145,9 @@ export interface ContactEmailData {
   receivedAt: Date | string
 }
 
-export async function sendContactNotificationToAdmin(data: ContactEmailData): Promise<void> {
+export async function sendContactNotificationToAdmin(
+  data: ContactEmailData,
+): Promise<void> {
   const full = `${data.firstName} ${data.lastName}`.trim()
   const body = `
     <h1 style="margin:0 0 8px 0;font-size:20px;color:#071A2C;">Nouveau message de contact</h1>
@@ -124,14 +165,18 @@ export async function sendContactNotificationToAdmin(data: ContactEmailData): Pr
     <div style="margin-top:24px;"><a href="mailto:${esc(data.email)}?subject=Re:%20${encodeURIComponent(data.subject)}" style="display:inline-block;background:#0B2942;color:#FFFFFF;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;">Répondre à ${esc(data.firstName)}</a></div>
   `
   await getTransporter().sendMail({
-    from: SMTP_FROM, to: ADMIN_EMAIL, replyTo: data.email,
+    from: SMTP_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: data.email,
     subject: `[Contact] ${data.subject} — ${full}`,
     html: wrapHtml('Nouveau message de contact', body),
     text: `Nouveau message de contact\n\n${full}\n${data.email}\n${data.phone ?? 'Téléphone non renseigné'}\n\nObjet : ${data.subject}\n\n${data.message}`,
   })
 }
 
-export async function sendContactConfirmationToClient(data: ContactEmailData): Promise<void> {
+export async function sendContactConfirmationToClient(
+  data: ContactEmailData,
+): Promise<void> {
   const body = `
     <h1 style="margin:0 0 16px 0;font-size:22px;color:#071A2C;">Votre message a bien été reçu</h1>
     <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${esc(data.firstName)},</p>
@@ -146,7 +191,9 @@ export async function sendContactConfirmationToClient(data: ContactEmailData): P
     <p style="margin:24px 0 0 0;font-size:14px;color:#17212B;">Cordialement,<br /><strong>${site.name}</strong></p>
   `
   await getTransporter().sendMail({
-    from: SMTP_FROM, to: data.email, replyTo: ADMIN_EMAIL,
+    from: SMTP_FROM,
+    to: data.email,
+    replyTo: ADMIN_EMAIL,
     subject: `Confirmation de réception — ${site.shortName}`,
     html: wrapHtml('Confirmation de réception', body),
     text: `Bonjour ${data.firstName},\n\nNous avons bien reçu votre message concernant « ${data.subject} ».\n\n${site.name}\n${site.contact.phone}`,
@@ -154,13 +201,15 @@ export async function sendContactConfirmationToClient(data: ContactEmailData): P
 }
 
 /* ============================================================
-   RENDEZ-VOUS — 2 emails avec PDF joint
+   RENDEZ-VOUS
    ============================================================ */
 export interface AppointmentEmailData extends AppointmentPdfData {
   pdfBuffer: Buffer
 }
 
-export async function sendAppointmentNotificationToAdmin(data: AppointmentEmailData): Promise<void> {
+export async function sendAppointmentNotificationToAdmin(
+  data: AppointmentEmailData,
+): Promise<void> {
   const full = `${data.firstName} ${data.lastName}`.trim()
   const serviceLabel = labelOf(APPOINTMENT_SERVICES, data.typeService)
   const urgenceLabel = labelOf(APPOINTMENT_URGENCIES, data.urgence)
@@ -187,17 +236,29 @@ export async function sendAppointmentNotificationToAdmin(data: AppointmentEmailD
     <div style="margin-top:24px;"><a href="mailto:${esc(data.email)}?subject=Confirmation%20de%20rendez-vous%20-%20${encodeURIComponent(data.reference)}" style="display:inline-block;background:#0B2942;color:#FFFFFF;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:13px;font-weight:600;">Répondre à ${esc(data.firstName)}</a></div>
   `
   await getTransporter().sendMail({
-    from: SMTP_FROM, to: ADMIN_EMAIL, replyTo: data.email,
+    from: SMTP_FROM,
+    to: ADMIN_EMAIL,
+    replyTo: data.email,
     subject: `[Rendez-vous] ${data.reference} — ${full}`,
     html: wrapHtml('Nouvelle demande de rendez-vous', body),
     text: `Nouvelle demande de rendez-vous\n\nRéférence : ${data.reference}\n${full}\n${data.email}\n${data.phone}\nNature : ${serviceLabel}\nUrgence : ${urgenceLabel}\nDate souhaitée : ${fmtDateLong(data.preferredDate)}\n\n${data.description}`,
-    attachments: [{ filename: `confirmation-rdv-${data.reference}.pdf`, content: data.pdfBuffer, contentType: 'application/pdf' }],
+    attachments: [
+      {
+        filename: `confirmation-rdv-${data.reference}.pdf`,
+        content: data.pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
   })
 }
 
-export async function sendAppointmentConfirmationToClient(data: AppointmentEmailData): Promise<void> {
+export async function sendAppointmentConfirmationToClient(
+  data: AppointmentEmailData,
+): Promise<void> {
   const serviceLabel = labelOf(APPOINTMENT_SERVICES, data.typeService)
-  const preferredDate = data.preferredDate ? fmtDateLong(data.preferredDate) : 'À définir avec le cabinet'
+  const preferredDate = data.preferredDate
+    ? fmtDateLong(data.preferredDate)
+    : 'À définir avec le cabinet'
   const body = `
     <h1 style="margin:0 0 16px 0;font-size:22px;color:#071A2C;">Votre rendez-vous est enregistré</h1>
     <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${esc(data.firstName)},</p>
@@ -214,10 +275,18 @@ export async function sendAppointmentConfirmationToClient(data: AppointmentEmail
     <p style="margin:24px 0 0 0;font-size:14px;color:#17212B;">Cordialement,<br /><strong>${site.name}</strong></p>
   `
   await getTransporter().sendMail({
-    from: SMTP_FROM, to: data.email, replyTo: ADMIN_EMAIL,
+    from: SMTP_FROM,
+    to: data.email,
+    replyTo: ADMIN_EMAIL,
     subject: `Votre demande de rendez-vous — ${data.reference}`,
     html: wrapHtml('Confirmation de rendez-vous', body),
     text: `Bonjour ${data.firstName},\n\nVotre demande de rendez-vous a été enregistrée.\n\nRéférence : ${data.reference}\nNature : ${serviceLabel}\nDate souhaitée : ${preferredDate}\n\n${site.name}`,
-    attachments: [{ filename: `confirmation-rdv-${data.reference}.pdf`, content: data.pdfBuffer, contentType: 'application/pdf' }],
+    attachments: [
+      {
+        filename: `confirmation-rdv-${data.reference}.pdf`,
+        content: data.pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
   })
 }

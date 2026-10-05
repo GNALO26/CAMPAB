@@ -37,8 +37,9 @@ const legalLinks = [
 
 export default function Footer() {
   const year = new Date().getFullYear()
-  const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
-    'Bonjour, je souhaite prendre rendez-vous avec le cabinet.',
+  const rawNumber = (site.contact.whatsapp || '').replace(/\D/g, '')
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${rawNumber}&text=${encodeURIComponent(
+    'Bonjour, je souhaite prendre rendez-vous avec le cabinet CAMPAB.',
   )}`
 
   return (
