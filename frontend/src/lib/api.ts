@@ -1,16 +1,26 @@
 // src/lib/api.ts
 /**
  * Client HTTP centralisé.
- * Par défaut, pointe vers les routes API internes de Next.js (/api).
- * Peut cibler un backend externe via NEXT_PUBLIC_API_URL.
+ * Corrige automatiquement l'URL de base pour toujours inclure /api.
  */
 
 const DEFAULT_BASE = '/api'
 const DEFAULT_TIMEOUT = 20_000
 
-export const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || DEFAULT_BASE
-).trim()
+function normalizeBaseUrl(input: string | undefined): string {
+  if (!input) return DEFAULT_BASE
+
+  let url = input.trim().replace(/\/$/, '')
+
+  // Si l'URL ne contient ni /api ni http://localhost, on ajoute /api
+  if (!url.endsWith('/api') && !url.includes('localhost')) {
+    url = `${url}/api`
+  }
+
+  return url
+}
+
+export const API_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL)
 
 export const API_BASE = API_URL.endsWith('/api')
   ? API_URL.slice(0, -4)
@@ -103,7 +113,6 @@ export async function apiFetch<T = unknown>(
 
   const url = /^https?:\/\//.test(path) ? path : `${API_URL}${path}`
 
-  /* Combinaison du signal externe et d'un timeout interne */
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   if (signal) {
@@ -127,20 +136,17 @@ export async function apiFetch<T = unknown>(
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new ApiException({
         status: 0,
-        message:
-          'La requête a expiré. Vérifiez votre connexion et réessayez.',
+        message: 'La requête a expiré. Vérifiez votre connexion et réessayez.',
       })
     }
     throw new ApiException({
       status: 0,
-      message:
-        'Impossible de joindre le serveur. Vérifiez votre connexion internet.',
+      message: 'Impossible de joindre le serveur. Vérifiez votre connexion internet.',
     })
   } finally {
     clearTimeout(timeoutId)
   }
 
-  /* 204 No Content */
   if (response.status === 204) return undefined as T
 
   const contentType = response.headers.get('content-type') ?? ''
@@ -150,7 +156,6 @@ export async function apiFetch<T = unknown>(
   if (isJson) {
     data = await response.json().catch(() => null)
   } else {
-    /* Si la réponse n'est pas du JSON, on lit le texte pour le log */
     const text = await response.text().catch(() => '')
     if (!response.ok && text) {
       throw new ApiException({
@@ -161,7 +166,12 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!response.ok) {
-    const err = (data as { error?: string; message?: string; details?: Record<string, string[]> }) ?? {}
+    const err =
+      (data as {
+        error?: string
+        message?: string
+        details?: Record<string, string[]>
+      }) ?? {}
     throw new ApiException({
       status: response.status,
       message: err.error || err.message || `Erreur ${response.status}`,
@@ -172,9 +182,6 @@ export async function apiFetch<T = unknown>(
   return data as T
 }
 
-/* ============================================================
-   Helpers courts
-   ============================================================ */
 export const api = {
   get: <T>(path: string, auth = false) =>
     apiFetch<T>(path, { method: 'GET', auth }),

@@ -96,3 +96,12 @@ export const CONTACT_SUBJECTS = [
   'Droit civil',
   'Autre demande',
 ] as const
+
+// src/lib/schemas.ts (ajout à la fin)
+export interface AvailableSlotsResponse {
+  date: string
+  isWorkingDay: boolean
+  slots: string[]
+  allSlots?: string[]
+  message?: string
+}
