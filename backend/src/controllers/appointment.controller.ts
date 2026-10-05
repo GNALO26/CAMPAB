@@ -275,34 +275,28 @@ export async function downloadAppointmentPDF(
       return;
     }
 
-    const { generatePdf } = await import("../lib/pdf.js");
-    const buffer = await generatePdf({
-      title: "Confirmation de rendez-vous",
-      subtitle: `CAMPAB, référence : ${appointment.reference || "N/A"}`,
-      rows: [
-        {
-          label: "Client",
-          value: `${appointment.firstName} ${appointment.lastName}`,
-        },
-        { label: "Email", value: appointment.email },
-        { label: "Téléphone", value: appointment.phone },
-        {
-          label: "Objet",
-          value: appointment.subject || "Non précisé",
-        },
-        {
-          label: "Date souhaitée",
-          value: appointment.preferredDate
-            ? new Date(appointment.preferredDate).toLocaleDateString("fr-FR")
-            : "À définir",
-        },
-        {
-          label: "Heure souhaitée",
-          value: appointment.preferredTime || "À définir",
-        },
-        { label: "Statut", value: appointment.status },
-      ],
-      footer: "CAMPAB, 01 97 76 29 36, p.abodecabinet@gmail.com",
+    // Import dynamique : le module PDF n'est chargé qu'à la demande.
+    const { generateAppointmentPdf } = await import("../lib/pdf.js");
+
+    const buffer = await generateAppointmentPdf({
+      reference: appointment.reference ?? String(appointment._id),
+      typeService: (appointment as any).typeService ?? "non_precise",
+      urgence: (appointment as any).urgence ?? "normale",
+      description:
+        (appointment as any).description ??
+        appointment.subject ??
+        "Non précisée",
+      firstName: appointment.firstName,
+      lastName: appointment.lastName,
+      email: appointment.email,
+      phone: appointment.phone,
+      organisation: (appointment as any).organisation ?? null,
+      country: (appointment as any).country ?? "Non précisé",
+      preferredDate: appointment.preferredDate
+        ? new Date(appointment.preferredDate).toISOString()
+        : null,
+      preferredTime: appointment.preferredTime ?? null,
+      createdAt: appointment.createdAt ?? new Date(),
     });
 
     res.setHeader("Content-Type", "application/pdf");

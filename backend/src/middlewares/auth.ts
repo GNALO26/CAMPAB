@@ -16,7 +16,7 @@ export function requireAuth(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).json({ error: "Token manquant" });
+      res.status(401).json({ error: "Token manquant." });
       return;
     }
 
@@ -29,9 +29,7 @@ export function requireAuth(
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     next();
-    return;
   } catch {
-    res.status(401).json({ error: "Token invalide ou expiré" });
-    return;
+    res.status(401).json({ error: "Token invalide ou expiré." });
   }
 }

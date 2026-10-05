@@ -8,6 +8,7 @@ export interface IUser extends Document {
   name: string;
   role: "admin" | "editor";
   createdAt: Date;
+  updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -40,15 +41,17 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// Hash du mot de passe avant sauvegarde
+/* Hash automatique avant sauvegarde */
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Méthode de comparaison
-userSchema.methods.comparePassword = async function (candidate: string) {
+/* Méthode de comparaison */
+userSchema.methods.comparePassword = async function (
+  candidate: string
+): Promise<boolean> {
   return bcrypt.compare(candidate, this.password);
 };
 

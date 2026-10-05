@@ -1,10 +1,9 @@
 ﻿// backend/src/lib/mailer.ts
 import { env } from "./env.js";
-import { generatePdf } from "./pdf.js";
+import { generateAppointmentPdf } from "./pdf.js";
 
 /* ============================================================
    Authentification Gmail API (OAuth 2.0)
-   Obtient un access token depuis le refresh token.
    ============================================================ */
 let cachedAccessToken: string | null = null;
 let accessTokenExpiresAt = 0;
@@ -12,7 +11,6 @@ let accessTokenExpiresAt = 0;
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
 
-  /* Utilise le cache si le token est encore valide (avec marge de 60 s) */
   if (cachedAccessToken && now < accessTokenExpiresAt - 60_000) {
     return cachedAccessToken;
   }
@@ -52,7 +50,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 /* ============================================================
-   Envoi d'un email via Gmail API (HTTP natif)
+   Envoi d'un email via Gmail API
    ============================================================ */
 interface MailAttachment {
   filename: string;
@@ -119,7 +117,6 @@ async function sendMail(options: SendMailOptions): Promise<void> {
 
   const mimeMessage = buildMimeMessage(options);
 
-  /* Encodage base64url obligatoire pour Gmail API */
   const raw = Buffer.from(mimeMessage)
     .toString("base64")
     .replace(/\+/g, "-")
@@ -171,18 +168,6 @@ function getServiceLabel(value: string | undefined): string {
 function getUrgenceLabel(value: string | undefined): string {
   if (!value) return "Normale";
   return URGENCE_LABELS[value] ?? value;
-}
-
-function formatDateLong(value: string | Date | undefined | null): string {
-  if (!value) return "À définir avec le cabinet";
-  const d = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(d.getTime())) return "À définir avec le cabinet";
-  return new Intl.DateTimeFormat("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(d);
 }
 
 function formatDateTime(value: string | Date): string {
@@ -273,28 +258,37 @@ export async function sendAppointmentEmails(appointment: any) {
   const fullName = `${appointment.firstName} ${appointment.lastName}`.trim();
   const serviceText = getServiceLabel(appointment.typeService);
   const urgenceText = getUrgenceLabel(appointment.urgence);
-  const dateText = formatDateLong(appointment.preferredDate);
+  const dateText = appointment.preferredDate
+    ? new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(appointment.preferredDate))
+    : "À définir avec le cabinet";
   const timeText = appointment.preferredTime || "À définir avec le cabinet";
 
+  /* Génération du PDF avec la nouvelle interface */
   let pdfBuffer: Buffer | null = null;
   try {
-    pdfBuffer = await generatePdf({
-      title: "Confirmation de rendez-vous",
-      subtitle: `CAMPAB, référence : ${appointment.reference || "N/A"}`,
-      rows: [
-        { label: "Client", value: fullName },
-        { label: "Email", value: appointment.email },
-        { label: "Téléphone", value: appointment.phone },
-        { label: "Organisation", value: appointment.organisation || "Non précisée" },
-        { label: "Pays", value: appointment.country || "Non précisé" },
-        { label: "Nature", value: serviceText },
-        { label: "Urgence", value: urgenceText },
-        { label: "Date souhaitée", value: dateText },
-        { label: "Heure souhaitée", value: timeText },
-      ],
-      footer: "CAMPAB, 01 97 76 29 36, p.abodecabinet@gmail.com",
+    pdfBuffer = await generateAppointmentPdf({
+      reference: appointment.reference || "N/A",
+      typeService: appointment.typeService || "consultation",
+      urgence: appointment.urgence || "normale",
+      description: appointment.description || "Non précisée",
+      firstName: appointment.firstName,
+      lastName: appointment.lastName,
+      email: appointment.email,
+      phone: appointment.phone,
+      organisation: appointment.organisation || null,
+      country: appointment.country || "Non précisé",
+      preferredDate: appointment.preferredDate || null,
+      preferredTime: appointment.preferredTime || null,
+      createdAt: appointment.createdAt || new Date(),
     });
-    console.log("[mailer] PDF généré, taille :", pdfBuffer.length, "octets");
+    if (pdfBuffer) {
+      console.log("[mailer] PDF généré, taille :", pdfBuffer.length, "octets");
+    }
   } catch (error) {
     console.error("[mailer] Échec PDF :", error);
   }
@@ -309,6 +303,7 @@ export async function sendAppointmentEmails(appointment: any) {
       ]
     : [];
 
+  /* Email client */
   try {
     await sendMail({
       to: appointment.email,
@@ -340,6 +335,7 @@ export async function sendAppointmentEmails(appointment: any) {
     throw error;
   }
 
+  /* Email admin */
   try {
     await sendMail({
       to: "p.abodecabinet@gmail.com",
