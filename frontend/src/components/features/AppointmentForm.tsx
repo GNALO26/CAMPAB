@@ -589,7 +589,6 @@ export default function AppointmentForm() {
                     size={12}
                     style={{ display: 'inline', marginRight: 4, verticalAlign: '-2px' }}
                   />
-                  Créneaux de 30 minutes, espacés de 30 minutes minimum.
                 </p>
               )}
             </div>
