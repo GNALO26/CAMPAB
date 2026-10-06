@@ -1,8 +1,9 @@
 // backend/src/models/User.ts
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   email: string;
   password: string;
   name: string;
@@ -38,7 +39,35 @@ const userSchema = new Schema<IUser>(
       default: "admin",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        // Le mot de passe ne doit JAMAIS apparaître dans une réponse API
+        delete ret.password;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        delete ret.password;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
 /* Hash automatique avant sauvegarde */

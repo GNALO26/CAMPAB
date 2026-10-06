@@ -1,167 +1,169 @@
-// app/admin/messages/page.tsx
+// app/admin/page.tsx
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   AlertCircle,
-  CheckCircle2,
+  ArrowRight,
+  Briefcase,
+  Calendar,
+  FileText,
   Loader2,
   Mail,
-  MailOpen,
-  Phone,
-  RefreshCw,
-  Search,
-  Trash2,
 } from 'lucide-react'
-import { toast } from 'sonner'
 
-import { api, ApiException } from '@/lib/api'
+import { api } from '@/lib/api'
 import { useAuth } from '@/lib/hooks/useAuth'
-import type { ContactMessage } from '@/types'
+import type {
+  Appointment,
+  Article,
+  ContactMessage,
+  PortfolioItem,
+} from '@/types'
 
-type Filter = 'all' | 'unread' | 'read'
+/* ============================================================
+   Types internes
+   ============================================================ */
+interface DashboardStats {
+  appointments: {
+    total: number
+    pending: number
+    confirmed: number
+  }
+  messages: {
+    total: number
+    unread: number
+  }
+  articles: {
+    total: number
+    published: number
+  }
+  portfolio: {
+    total: number
+  }
+}
 
-function formatDate(value: string): string {
+const EMPTY_STATS: DashboardStats = {
+  appointments: { total: 0, pending: 0, confirmed: 0 },
+  messages: { total: 0, unread: 0 },
+  articles: { total: 0, published: 0 },
+  portfolio: { total: 0 },
+}
+
+function formatDateShort(value?: string | null): string {
+  if (!value) return '—'
   const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return ''
+  if (Number.isNaN(d.getTime())) return '—'
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   }).format(d)
 }
 
-function getContactName(contact: {
-  firstName?: string | null
-  lastName?: string | null
-  name?: string | null
-}): string {
-  const parts = [contact.firstName, contact.lastName]
+function getFullName(firstName?: string, lastName?: string): string {
+  const parts = [firstName, lastName]
     .map((p) => (p ?? '').trim())
     .filter(Boolean)
-  if (parts.length > 0) return parts.join(' ')
-  if (contact.name && contact.name.trim().length > 0) return contact.name.trim()
-  return 'Anonyme'
+  return parts.length > 0 ? parts.join(' ') : 'Anonyme'
 }
 
-export default function AdminMessagesPage() {
-  const { admin, loading: authLoading } = useAuth({ redirectIfNotAuth: true })
+/* ============================================================
+   Page
+   ============================================================ */
+export default function AdminDashboardPage() {
+  const { admin, loading: authLoading } = useAuth()
 
-  const [messages, setMessages] = useState<ContactMessage[]>([])
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS)
+  const [latestAppointments, setLatestAppointments] = useState<Appointment[]>([])
+  const [latestMessages, setLatestMessages] = useState<ContactMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
-  const [query, setQuery] = useState('')
-  const [busyId, setBusyId] = useState<string | null>(null)
-
-  /* ============================================================
-     Chargement des messages
-     ============================================================ */
-  const fetchMessages = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await api.get<ContactMessage[]>('/admin/messages', true)
-      setMessages(data)
-    } catch (err) {
-      const message =
-        err instanceof ApiException
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : 'Impossible de charger les messages.'
-      setError(message)
-      toast.error(message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
-    if (!authLoading && admin) {
-      void fetchMessages()
-    }
-  }, [authLoading, admin, fetchMessages])
+    if (authLoading || !admin) return
+    let cancelled = false
 
-  /* ============================================================
-     Filtrage local
-     ============================================================ */
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return messages.filter((msg) => {
-      if (filter === 'unread' && msg.read) return false
-      if (filter === 'read' && !msg.read) return false
-      if (!needle) return true
-      const haystack = [
-        getContactName(msg),
-        msg.email,
-        msg.phone ?? '',
-        msg.subject,
-        msg.message,
-      ]
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(needle)
-    })
-  }, [messages, filter, query])
+    async function load() {
+      setLoading(true)
+      setError(null)
 
-  const unreadCount = useMemo(
-    () => messages.filter((m) => !m.read).length,
-    [messages],
-  )
+      const [apptRes, contactRes, artRes, portRes] = await Promise.allSettled([
+        api.get<Appointment[]>('/appointments', true),
+        api.get<ContactMessage[]>('/contact', true),
+        api.get<Article[]>('/articles/admin/all', true),
+        api.get<PortfolioItem[]>('/portfolio', true),
+      ])
 
-  /* ============================================================
-     Actions
-     ============================================================ */
-  async function toggleRead(msg: ContactMessage) {
-    setBusyId(msg.id)
-    try {
-      const next = !msg.read
-      await api.patch(`/admin/messages/${msg.id}`, { read: next }, true)
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? { ...m, read: next } : m)),
+      if (cancelled) return
+
+      const appointments =
+        apptRes.status === 'fulfilled' ? apptRes.value : []
+      const messages = contactRes.status === 'fulfilled' ? contactRes.value : []
+      const articles = artRes.status === 'fulfilled' ? artRes.value : []
+      const portfolio = portRes.status === 'fulfilled' ? portRes.value : []
+
+      setStats({
+        appointments: {
+          total: appointments.length,
+          pending: appointments.filter((a) => a.status === 'pending').length,
+          confirmed: appointments.filter((a) => a.status === 'confirmed').length,
+        },
+        messages: {
+          total: messages.length,
+          unread: messages.filter((m) => !m.read).length,
+        },
+        articles: {
+          total: articles.length,
+          published: articles.filter((a) => a.published).length,
+        },
+        portfolio: {
+          total: portfolio.length,
+        },
+      })
+
+      setLatestAppointments(
+        [...appointments]
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
+          .slice(0, 5),
       )
-      toast.success(next ? 'Marqué comme lu.' : 'Marqué comme non lu.')
-    } catch (err) {
-      const message =
-        err instanceof ApiException
-          ? err.message
-          : 'La mise à jour a échoué.'
-      toast.error(message)
-    } finally {
-      setBusyId(null)
-    }
-  }
 
-  async function removeMessage(msg: ContactMessage) {
-    if (
-      !window.confirm(
-        `Supprimer définitivement le message de ${getContactName(msg)} ?`,
+      setLatestMessages(
+        [...messages]
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
+          .slice(0, 5),
       )
-    ) {
-      return
-    }
-    setBusyId(msg.id)
-    try {
-      await api.delete(`/admin/messages/${msg.id}`, true)
-      setMessages((prev) => prev.filter((m) => m.id !== msg.id))
-      toast.success('Message supprimé.')
-    } catch (err) {
-      const message =
-        err instanceof ApiException
-          ? err.message
-          : 'La suppression a échoué.'
-      toast.error(message)
-    } finally {
-      setBusyId(null)
-    }
-  }
 
-  /* ============================================================
-     États de chargement / erreur
-     ============================================================ */
+      /* Si TOUS les appels ont échoué, on remonte une erreur visible */
+      const allFailed =
+        apptRes.status === 'rejected' &&
+        contactRes.status === 'rejected' &&
+        artRes.status === 'rejected' &&
+        portRes.status === 'rejected'
+
+      if (allFailed) {
+        setError(
+          'Impossible de charger les statistiques. Vérifiez votre connexion.',
+        )
+      }
+
+      setLoading(false)
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, admin])
+
   if (authLoading || loading) {
     return (
       <div
@@ -169,13 +171,13 @@ export default function AdminMessagesPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '40vh',
+          minHeight: '60vh',
           gap: 'var(--sp-3)',
           color: 'var(--text-500)',
         }}
       >
         <Loader2 size={20} className="animate-spin" aria-hidden="true" />
-        <span>Chargement des messages…</span>
+        <span>Chargement du tableau de bord…</span>
       </div>
     )
   }
@@ -218,339 +220,356 @@ export default function AdminMessagesPage() {
         <p style={{ color: 'var(--text-500)', marginBottom: 'var(--sp-6)' }}>
           {error}
         </p>
-        <button
-          type="button"
-          className="btn btn--primary btn--md"
-          onClick={() => void fetchMessages()}
-        >
-          <RefreshCw size={16} aria-hidden="true" />
-          <span>Réessayer</span>
-        </button>
       </div>
     )
   }
 
-  /* ============================================================
-     Rendu principal
-     ============================================================ */
-  return (
-    <div>
-      {/* En-tête */}
-      <header
-        style={{
-          marginBottom: 'var(--sp-8)',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 'var(--sp-4)',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--text-3xl)',
-              fontWeight: 600,
-              color: 'var(--text-900)',
-              marginBottom: 'var(--sp-2)',
-            }}
-          >
-            Messages de contact
-          </h1>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)' }}>
-            {messages.length} message{messages.length > 1 ? 's' : ''} reçu
-            {messages.length > 1 ? 's' : ''}
-            {unreadCount > 0 && ` · ${unreadCount} non lu${unreadCount > 1 ? 's' : ''}`}
-          </p>
-        </div>
+  const cards = [
+    {
+      label: 'Rendez-vous en attente',
+      value: stats.appointments.pending,
+      sub: `${stats.appointments.total} au total · ${stats.appointments.confirmed} confirmé(s)`,
+      href: '/admin/appointments',
+      icon: Calendar,
+    },
+    {
+      label: 'Messages non lus',
+      value: stats.messages.unread,
+      sub: `${stats.messages.total} au total`,
+      href: '/admin/messages',
+      icon: Mail,
+    },
+    {
+      label: 'Articles publiés',
+      value: stats.articles.published,
+      sub: `${stats.articles.total} au total`,
+      href: '/admin/articles',
+      icon: FileText,
+    },
+    {
+      label: 'Éléments portfolio',
+      value: stats.portfolio.total,
+      sub: 'thèse, projets, publications',
+      href: '/admin/portfolio',
+      icon: Briefcase,
+    },
+  ] as const
 
-        <button
-          type="button"
-          className="btn btn--outline btn--md"
-          onClick={() => void fetchMessages()}
-          disabled={loading}
+  return (
+    <div className="p-6 lg:p-10 max-w-7xl">
+      <header style={{ marginBottom: 'var(--sp-8)' }}>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-3xl)',
+            fontWeight: 600,
+            color: 'var(--text-900)',
+            marginBottom: 'var(--sp-2)',
+          }}
         >
-          <RefreshCw
-            size={16}
-            aria-hidden="true"
-            className={loading ? 'animate-spin' : undefined}
-          />
-          <span>Actualiser</span>
-        </button>
+          Tableau de bord
+        </h1>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)' }}>
+          Bienvenue, {admin?.name ?? 'Administrateur'}.
+        </p>
       </header>
 
-      {/* Barre de filtres */}
+      {/* Cartes statistiques */}
       <div
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 'var(--sp-3)',
-          marginBottom: 'var(--sp-6)',
-          alignItems: 'center',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 'var(--sp-4)',
+          marginBottom: 'var(--sp-10)',
         }}
       >
-        <div className="filter-pills" style={{ marginBottom: 0 }}>
-          {(
-            [
-              { value: 'all', label: 'Tous' },
-              { value: 'unread', label: `Non lus (${unreadCount})` },
-              { value: 'read', label: 'Lus' },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`filter-pill ${filter === opt.value ? 'is-active' : ''}`}
-              onClick={() => setFilter(opt.value)}
-              aria-pressed={filter === opt.value}
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <Link
+              key={card.href}
+              href={card.href}
+              className="card card--hover"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--sp-3)',
+                textDecoration: 'none',
+                color: 'inherit',
+                padding: 'var(--sp-6)',
+              }}
             >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div
-          style={{
-            position: 'relative',
-            flex: 1,
-            minWidth: 220,
-            maxWidth: 380,
-          }}
-        >
-          <Search
-            size={16}
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              left: 12,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-300)',
-              pointerEvents: 'none',
-            }}
-          />
-          <input
-            type="search"
-            className="form-control"
-            placeholder="Rechercher un nom, email, sujet…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            style={{ paddingLeft: '2.25rem' }}
-            aria-label="Rechercher dans les messages"
-          />
-        </div>
-      </div>
-
-      {/* Liste */}
-      {filtered.length === 0 ? (
-        <div className="empty-state" style={{ borderTop: '1px solid var(--border)' }}>
-          <p className="empty-state__title">
-            {messages.length === 0
-              ? 'Aucun message pour le moment'
-              : 'Aucun message ne correspond'}
-          </p>
-          <p className="empty-state__desc">
-            {messages.length === 0
-              ? 'Les messages envoyés depuis le formulaire de contact apparaîtront ici.'
-              : 'Essayez de modifier les filtres ou la recherche.'}
-          </p>
-        </div>
-      ) : (
-        <ul
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--sp-4)',
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          {filtered.map((msg) => {
-            const isBusy = busyId === msg.id
-            const fullName = getContactName(msg)
-            return (
-              <li
-                key={msg.id}
-                className="card"
+              <div
                 style={{
-                  padding: 'var(--sp-6)',
-                  borderLeft: msg.read
-                    ? '3px solid var(--border)'
-                    : '3px solid var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  color: 'var(--accent)',
                 }}
               >
+                <Icon size={20} aria-hidden="true" />
+                <ArrowRight size={16} aria-hidden="true" />
+              </div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-3xl)',
+                  fontWeight: 700,
+                  color: 'var(--text-900)',
+                  lineHeight: 1,
+                }}
+              >
+                {card.value}
+              </div>
+              <div>
                 <div
                   style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 'var(--sp-4)',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    color: 'var(--text-900)',
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 240 }}>
+                  {card.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-300)',
+                    marginTop: 2,
+                  }}
+                >
+                  {card.sub}
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* Derniers éléments */}
+      <div
+        style={{
+          display: 'grid',
+          gap: 'var(--sp-6)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        }}
+      >
+        {/* Derniers RDV */}
+        <section className="card" style={{ padding: 'var(--sp-6)' }}>
+          <header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 'var(--sp-4)',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
+                color: 'var(--text-900)',
+              }}
+            >
+              Derniers rendez-vous
+            </h2>
+            <Link
+              href="/admin/appointments"
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--accent)',
+                textDecoration: 'none',
+              }}
+            >
+              Voir tout →
+            </Link>
+          </header>
+
+          {latestAppointments.length === 0 ? (
+            <p
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-300)',
+                margin: 0,
+              }}
+            >
+              Aucun rendez-vous pour le moment.
+            </p>
+          ) : (
+            <ul
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--sp-3)',
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+              }}
+            >
+              {latestAppointments.map((a) => (
+                <li
+                  key={a.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 'var(--sp-3)',
+                    paddingBottom: 'var(--sp-3)',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--sp-3)',
-                        marginBottom: 'var(--sp-2)',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <strong
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 'var(--text-lg)',
-                          color: 'var(--text-900)',
-                        }}
-                      >
-                        {fullName}
-                      </strong>
-
-                      {!msg.read && (
-                        <span
-                          className="category-badge category-badge--sky"
-                          aria-label="Non lu"
-                        >
-                          Nouveau
-                        </span>
-                      )}
-
-                      <span
-                        style={{
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--text-300)',
-                          marginLeft: 'auto',
-                        }}
-                      >
-                        {formatDate(msg.createdAt)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 'var(--sp-4)',
-                        fontSize: 'var(--text-sm)',
-                        color: 'var(--text-500)',
-                        marginBottom: 'var(--sp-3)',
-                      }}
-                    >
-                      <a
-                        href={`mailto:${msg.email}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          color: 'inherit',
-                        }}
-                      >
-                        <Mail size={14} aria-hidden="true" />
-                        {msg.email}
-                      </a>
-                      {msg.phone && (
-                        <a
-                          href={`tel:${msg.phone.replace(/\s/g, '')}`}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            color: 'inherit',
-                          }}
-                        >
-                          <Phone size={14} aria-hidden="true" />
-                          {msg.phone}
-                        </a>
-                      )}
-                    </div>
-
-                    <p
                       style={{
                         fontSize: 'var(--text-sm)',
                         fontWeight: 600,
                         color: 'var(--text-900)',
-                        marginBottom: 'var(--sp-2)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {msg.subject}
-                    </p>
+                      {getFullName(a.firstName, a.lastName)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-300)',
+                      }}
+                    >
+                      {a.reference} · {formatDateShort(a.createdAt)}
+                    </div>
+                  </div>
+                  <span
+                    className={`category-badge ${
+                      a.status === 'pending'
+                        ? 'category-badge--amber'
+                        : a.status === 'confirmed'
+                          ? 'category-badge--sky'
+                          : a.status === 'done'
+                            ? 'category-badge--olive'
+                            : 'category-badge--navy'
+                    }`}
+                  >
+                    {a.status === 'pending'
+                      ? 'En attente'
+                      : a.status === 'confirmed'
+                        ? 'Confirmé'
+                        : a.status === 'done'
+                          ? 'Terminé'
+                          : 'Annulé'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-                    <p
+        {/* Derniers messages */}
+        <section className="card" style={{ padding: 'var(--sp-6)' }}>
+          <header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 'var(--sp-4)',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
+                color: 'var(--text-900)',
+              }}
+            >
+              Derniers messages
+            </h2>
+            <Link
+              href="/admin/messages"
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--accent)',
+                textDecoration: 'none',
+              }}
+            >
+              Voir tout →
+            </Link>
+          </header>
+
+          {latestMessages.length === 0 ? (
+            <p
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-300)',
+                margin: 0,
+              }}
+            >
+              Aucun message pour le moment.
+            </p>
+          ) : (
+            <ul
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--sp-3)',
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+              }}
+            >
+              {latestMessages.map((m) => (
+                <li
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 'var(--sp-3)',
+                    paddingBottom: 'var(--sp-3)',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
                       style={{
                         fontSize: 'var(--text-sm)',
-                        color: 'var(--text-500)',
-                        lineHeight: 1.7,
-                        whiteSpace: 'pre-line',
-                        margin: 0,
+                        fontWeight: 600,
+                        color: 'var(--text-900)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {msg.message}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'var(--sp-2)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="btn btn--outline btn--sm"
-                      onClick={() => void toggleRead(msg)}
-                      disabled={isBusy}
-                      aria-label={msg.read ? 'Marquer comme non lu' : 'Marquer comme lu'}
+                      {getFullName(m.firstName, m.lastName)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-300)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
-                      {isBusy ? (
-                        <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                      ) : msg.read ? (
-                        <Mail size={14} aria-hidden="true" />
-                      ) : (
-                        <MailOpen size={14} aria-hidden="true" />
-                      )}
-                      <span>{msg.read ? 'Non lu' : 'Lu'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => void removeMessage(msg)}
-                      disabled={isBusy}
-                      aria-label={`Supprimer le message de ${fullName}`}
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      <Trash2 size={14} aria-hidden="true" />
-                      <span>Supprimer</span>
-                    </button>
-
-                    {msg.read && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--accent-green)',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <CheckCircle2 size={12} aria-hidden="true" />
-                        Traité
-                      </span>
-                    )}
+                      {m.subject} · {formatDateShort(m.createdAt)}
+                    </div>
                   </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                  {!m.read && (
+                    <span
+                      className="category-badge category-badge--sky"
+                      aria-label="Non lu"
+                    >
+                      Nouveau
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

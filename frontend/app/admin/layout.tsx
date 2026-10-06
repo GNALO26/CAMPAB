@@ -2,7 +2,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -25,14 +25,23 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  /* /admin/login n'est jamais protégé : on rend directement les enfants */
+  /* Pose un marqueur sur <body> pour masquer header/footer publics */
+  useEffect(() => {
+    document.body.setAttribute("data-admin", "true");
+    return () => {
+      document.body.removeAttribute("data-admin");
+    };
+  }, []);
+
   const isLoginPage = pathname === "/admin/login";
 
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  return <ProtectedAdminLayout pathname={pathname}>{children}</ProtectedAdminLayout>;
+  return (
+    <ProtectedAdminLayout pathname={pathname}>{children}</ProtectedAdminLayout>
+  );
 }
 
 function ProtectedAdminLayout({
@@ -44,7 +53,6 @@ function ProtectedAdminLayout({
 }) {
   const { admin, loading, logout } = useAuth();
 
-  /* Chargement initial OU redirection en cours : loader plein écran */
   if (loading || !admin) {
     return (
       <div
@@ -82,19 +90,24 @@ function ProtectedAdminLayout({
     <div
       style={{
         display: "flex",
-        minHeight: "100vh",
+        height: "100vh",
+        width: "100%",
+        overflow: "hidden",
         background: "var(--bg-alt)",
       }}
     >
-      {/* Sidebar */}
+      {/* Sidebar fixe */}
       <aside
         style={{
           width: "260px",
+          flexShrink: 0,
+          height: "100vh",
           background: "var(--navy-deep)",
           color: "var(--on-dark-700)",
           display: "flex",
           flexDirection: "column",
           padding: "24px 16px",
+          overflowY: "auto",
         }}
       >
         <div
@@ -202,7 +215,17 @@ function ProtectedAdminLayout({
         </div>
       </aside>
 
-      <main style={{ flex: 1, overflow: "auto" }}>{children}</main>
+      {/* Zone de contenu (seule à défiler) */}
+      <main
+        style={{
+          flex: 1,
+          height: "100vh",
+          overflowY: "auto",
+          padding: "24px 0",
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

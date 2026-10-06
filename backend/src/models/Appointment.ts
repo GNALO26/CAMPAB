@@ -117,6 +117,29 @@ const appointmentSchema = new Schema<IAppointment>(
   {
     timestamps: true,
     versionKey: false,
+    /* Transforme `_id` en `id` et le rend visible côté frontend */
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 

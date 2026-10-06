@@ -1,30 +1,92 @@
 // backend/src/models/Portfolio.ts
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
-export interface IPortfolioItem extends Document {
+export type PortfolioCategory =
+  | "these"
+  | "projet"
+  | "publication"
+  | "distinction";
+
+export interface IPortfolio extends Document {
+  _id: Types.ObjectId;
   title: string;
   description: string;
-  category: "these" | "projet" | "publication" | "distinction";
-  link?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
+  link?: string | null;
+  category: PortfolioCategory;
   order: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const portfolioSchema = new Schema<IPortfolioItem>(
+const portfolioSchema = new Schema<IPortfolio>(
   {
-    title: { type: String, required: true, trim: true, maxlength: 200 },
-    description: { type: String, required: true, trim: true, maxlength: 2000 },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 2000,
+    },
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    link: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     category: {
       type: String,
       enum: ["these", "projet", "publication", "distinction"],
       required: true,
+      default: "projet",
     },
-    link: { type: String, default: null },
-    imageUrl: { type: String, default: null },
-    order: { type: Number, default: 0 },
+    order: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id !== undefined) {
+          ret.id = String(ret._id);
+          delete ret._id;
+        }
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
-export default mongoose.model<IPortfolioItem>("Portfolio", portfolioSchema);
+/* Liste triée par ordre croissant, puis par date */
+portfolioSchema.index({ order: 1, createdAt: -1 });
+
+/* Filtre par catégorie */
+portfolioSchema.index({ category: 1 });
+
+export default mongoose.model<IPortfolio>("Portfolio", portfolioSchema);

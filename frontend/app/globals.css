@@ -3473,3 +3473,20 @@
     color: #666;
   }
 }
+/* ============================================================
+   8. ESPACE ADMIN — masque le chrome du site public
+   Activé par admin/layout.tsx via body[data-admin="true"]
+   ============================================================ */
+body[data-admin="true"] .nav,
+body[data-admin="true"] .mobile-menu,
+body[data-admin="true"] .footer,
+body[data-admin="true"] .whatsapp-widget,
+body[data-admin="true"] .back-top {
+  display: none !important;
+}
+
+/* Sur les pages admin, le <main> racine ne doit pas avoir de
+   padding-top (le header masqué ne réserve plus d'espace). */
+body[data-admin="true"] main {
+  padding-top: 0 !important;
+}
