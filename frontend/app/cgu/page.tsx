@@ -1,16 +1,16 @@
 ﻿// app/cgu/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { buildMetadata } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Conditions générales d’utilisation',
   description:
     'Conditions générales d’utilisation du site du Cabinet CAMPAB, cabinet juridique à Cotonou, Bénin.',
-  alternates: { canonical: `${site.url}/cgu` },
-  robots: { index: true, follow: true },
-}
+  path: '/cgu',
+  noindex: false,
+})
 
 const lastUpdate = new Intl.DateTimeFormat('fr-FR', {
   year: 'numeric',
@@ -49,8 +49,8 @@ export default function CGUPage() {
             <h2>1. Objet</h2>
             <p>
               Les présentes conditions générales ont pour objet de définir les
-              modalités d’accès et d’utilisation du site {site.url.replace('https://', '')},
-              édité par {site.name}.
+              modalités d’accès et d’utilisation du site{' '}
+              {site.url.replace('https://', '')}, édité par {site.name}.
             </p>
 
             <h2>2. Acceptation des conditions</h2>
@@ -81,10 +81,19 @@ export default function CGUPage() {
             <h2>5. Utilisation du site</h2>
             <p>L’utilisateur s’engage à :</p>
             <ul>
-              <li>Utiliser le site conformément à la loi et aux présentes conditions.</li>
-              <li>Ne pas porter atteinte à la sécurité ou au bon fonctionnement du site.</li>
+              <li>
+                Utiliser le site conformément à la loi et aux présentes
+                conditions.
+              </li>
+              <li>
+                Ne pas porter atteinte à la sécurité ou au bon fonctionnement du
+                site.
+              </li>
               <li>Ne pas tenter d’accéder à des zones non autorisées.</li>
-              <li>Fournir des informations exactes lors de l’utilisation des formulaires.</li>
+              <li>
+                Fournir des informations exactes lors de l’utilisation des
+                formulaires.
+              </li>
               <li>Ne pas usurper l’identité d’un tiers.</li>
             </ul>
 

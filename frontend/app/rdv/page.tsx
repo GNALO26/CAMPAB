@@ -1,5 +1,4 @@
 // app/rdv/page.tsx
-import type { Metadata } from 'next'
 import {
   CalendarDays,
   Clock,
@@ -11,14 +10,21 @@ import {
 
 import AppointmentForm from '@/components/features/AppointmentForm'
 import JsonLd from '@/components/features/JsonLd'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'Prendre rendez-vous',
+export const metadata = buildMetadata({
+  title: 'Prendre rendez-vous en ligne',
   description:
     'Prenez rendez-vous avec le Cabinet CAMPAB à Cotonou. Consultation juridique, médiation ou arbitrage OHADA. Formulaire en trois étapes, réponse sous 24 à 48 heures ouvrées.',
-  alternates: { canonical: `${site.url}/rdv` },
-}
+  path: '/rdv',
+  keywords: [
+    'rendez-vous avocat en ligne',
+    'consultation juridique Cotonou',
+    'prise de rendez-vous cabinet juridique',
+    'médiation Bénin',
+  ],
+})
 
 export default function RendezVousPage() {
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
@@ -40,21 +46,16 @@ export default function RendezVousPage() {
     },
   }
 
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${site.url}/` },
-      { '@type': 'ListItem', position: 2, name: 'Prendre rendez-vous', item: `${site.url}/rdv` },
-    ],
-  }
-
   return (
     <>
       <JsonLd data={jsonLd} />
-      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Prendre rendez-vous', path: '/rdv' },
+        ])}
+      />
 
-      {/* En-tête */}
       <section className="page-header" aria-labelledby="rdv-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -86,11 +87,9 @@ export default function RendezVousPage() {
         </div>
       </section>
 
-      {/* Contenu principal */}
       <section aria-label="Formulaire de prise de rendez-vous">
         <div className="container">
           <div className="contact-layout">
-            {/* Colonne gauche : alternatives */}
             <aside aria-label="Autres moyens de contact">
               <h2
                 style={{
@@ -137,7 +136,9 @@ export default function RendezVousPage() {
                     {site.contact.phone}
                   </a>
                   {site.contact.phone2 && (
-                    <div className="contact-info-item__sub">{site.contact.phone2}</div>
+                    <div className="contact-info-item__sub">
+                      {site.contact.phone2}
+                    </div>
                   )}
                 </div>
               </div>
@@ -163,7 +164,9 @@ export default function RendezVousPage() {
                 </div>
                 <div>
                   <div className="contact-info-item__label">Localisation</div>
-                  <div className="contact-info-item__value">{site.address.full}</div>
+                  <div className="contact-info-item__value">
+                    {site.address.full}
+                  </div>
                 </div>
               </div>
 
@@ -191,7 +194,6 @@ export default function RendezVousPage() {
               </div>
             </aside>
 
-            {/* Colonne droite : formulaire */}
             <div className="contact-form-box">
               <h2
                 style={{

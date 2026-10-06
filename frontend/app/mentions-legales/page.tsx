@@ -1,16 +1,16 @@
 ﻿// app/mentions-legales/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { buildMetadata } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Mentions légales',
   description:
     'Mentions légales du site du Cabinet CAMPAB, cabinet juridique à Cotonou spécialisé en médiation, arbitrage OHADA et conseil.',
-  alternates: { canonical: `${site.url}/mentions-legales` },
-  robots: { index: true, follow: true },
-}
+  path: '/mentions-legales',
+  noindex: false,
+})
 
 const lastUpdate = new Intl.DateTimeFormat('fr-FR', {
   year: 'numeric',
@@ -23,7 +23,6 @@ export default function MentionsLegalesPage() {
 
   return (
     <>
-      {/* En-tête */}
       <section className="page-header" aria-labelledby="mentions-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -47,7 +46,6 @@ export default function MentionsLegalesPage() {
         </div>
       </section>
 
-      {/* Contenu */}
       <section className="section">
         <div className="container container--md">
           <article className="legal-content">

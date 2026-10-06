@@ -1,24 +1,38 @@
 // app/expertises/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 import SectionTitle from '@/components/ui/SectionTitle'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import { expertises, site } from '@/lib/site'
+import JsonLd from '@/components/features/JsonLd'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
+import { expertises } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'Nos expertises',
+export const metadata = buildMetadata({
+  title: 'Nos expertises juridiques',
   description:
-    'Droit des affaires, sociétés, social, civil, immobilier, administratif, OHADA, médiation et arbitrage. Découvrez les domaines d’intervention du Cabinet CAMPAB.',
-  alternates: { canonical: `${site.url}/expertises` },
-}
+    'Droit des affaires, sociétés, social, civil, immobilier, administratif, OHADA, médiation et arbitrage. Découvrez les domaines d’intervention du Cabinet CAMPAB à Cotonou.',
+  path: '/expertises',
+  keywords: [
+    'droit des affaires Bénin',
+    'arbitrage OHADA',
+    'médiation commerciale',
+    'droit des sociétés Cotonou',
+    'expertise juridique OHADA',
+  ],
+})
 
 export default function ExpertisesPage() {
   return (
     <>
-      {/* En-tête */}
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Expertises', path: '/expertises' },
+        ])}
+      />
+
       <section className="page-header" aria-labelledby="expertises-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -39,7 +53,6 @@ export default function ExpertisesPage() {
         </div>
       </section>
 
-      {/* Grille des expertises */}
       <section className="section">
         <div className="container">
           <div
@@ -51,7 +64,10 @@ export default function ExpertisesPage() {
           >
             {expertises.map((item) => (
               <Card key={item.title} hover>
-                <div className="service-card__icon" style={{ marginBottom: 'var(--sp-5)' }}>
+                <div
+                  className="service-card__icon"
+                  style={{ marginBottom: 'var(--sp-5)' }}
+                >
                   <span
                     style={{
                       fontFamily: 'var(--font-display)',
@@ -63,7 +79,10 @@ export default function ExpertisesPage() {
                     {item.title.charAt(0)}
                   </span>
                 </div>
-                <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                <h3
+                  className="service-card__title"
+                  style={{ fontSize: 'var(--text-lg)' }}
+                >
                   {item.title}
                 </h3>
                 <p className="service-card__desc">{item.desc}</p>
@@ -71,7 +90,6 @@ export default function ExpertisesPage() {
             ))}
           </div>
 
-          {/* Blocs spécialisés */}
           <div
             style={{
               marginTop: 'var(--sp-16)',

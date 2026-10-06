@@ -1,5 +1,4 @@
 // app/portfolio/page.tsx
-import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -14,24 +13,34 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import JsonLd from '@/components/features/JsonLd'
 import { API_URL } from '@/lib/api'
-import { site } from '@/lib/site'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { portfolioCategoryLabels, portfolioCategoryVariants } from '@/lib/utils'
 import type { PortfolioCategory, PortfolioItem } from '@/types'
 
-export const metadata: Metadata = {
-  title: 'Portfolio',
+export const metadata = buildMetadata({
+  title: 'Portfolio et travaux académiques',
   description:
     'Thèse, projets, publications et distinctions de Sètondji Prudencia ABODE, juriste, médiatrice et arbitre OHADA à Cotonou.',
-  alternates: { canonical: `${site.url}/portfolio` },
-}
+  path: '/portfolio',
+  keywords: [
+    'portfolio juriste Bénin',
+    'publications juridiques OHADA',
+    'thèse droit OHADA',
+    'réalisations cabinet avocat',
+  ],
+})
 
 async function getPortfolio(): Promise<PortfolioItem[]> {
   try {
-    const res = await fetch(`${API_URL}/portfolio`, { next: { revalidate: 120 } })
+    const res = await fetch(`${API_URL}/portfolio`, {
+      next: { revalidate: 120 },
+    })
     if (!res.ok) return []
     return (await res.json()) as PortfolioItem[]
-  } catch {
+  } catch (error) {
+    console.error('[portfolio] Échec fetch :', error)
     return []
   }
 }
@@ -45,14 +54,23 @@ const ICONS: Record<PortfolioCategory, typeof FileText> = {
 
 export default async function PortfolioPage() {
   const items = await getPortfolio()
-  const grouped = items.reduce<Record<string, PortfolioItem[]>>((acc, item) => {
-    ;(acc[item.category] ||= []).push(item)
-    return acc
-  }, {})
+  const grouped = items.reduce<Record<string, PortfolioItem[]>>(
+    (acc, item) => {
+      ;(acc[item.category] ||= []).push(item)
+      return acc
+    },
+    {},
+  )
 
   return (
     <>
-      {/* En-tête */}
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Portfolio', path: '/portfolio' },
+        ])}
+      />
+
       <section className="page-header" aria-labelledby="portfolio-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -73,10 +91,8 @@ export default async function PortfolioPage() {
         </div>
       </section>
 
-      {/* Contenu */}
       <section className="section">
         <div className="container">
-          {/* Thèse */}
           <div style={{ marginBottom: 'var(--sp-20)' }}>
             <SectionTitle
               align="left"
@@ -84,7 +100,10 @@ export default async function PortfolioPage() {
               title="Travaux de recherche"
               subtitle="La thèse de la juriste est disponible en téléchargement."
             />
-            <Card padding="lg" style={{ marginTop: 'var(--sp-10)', maxWidth: '48rem' }}>
+            <Card
+              padding="lg"
+              style={{ marginTop: 'var(--sp-10)', maxWidth: '48rem' }}
+            >
               <div
                 style={{
                   display: 'flex',
@@ -119,7 +138,14 @@ export default async function PortfolioPage() {
                   >
                     Thèse de Sètondji Prudencia ABODE
                   </h3>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-500)', lineHeight: 1.75, marginBottom: 'var(--sp-6)' }}>
+                  <p
+                    style={{
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--text-500)',
+                      lineHeight: 1.75,
+                      marginBottom: 'var(--sp-6)',
+                    }}
+                  >
                     Travaux de recherche portant sur le droit OHADA, la médiation
                     et l’arbitrage dans l’espace communautaire. Ce document
                     constitue une contribution à la réflexion sur les modes
@@ -140,7 +166,6 @@ export default async function PortfolioPage() {
             </Card>
           </div>
 
-          {/* Autres éléments */}
           {items.length === 0 ? (
             <div
               className="empty-state"
@@ -160,10 +185,7 @@ export default async function PortfolioPage() {
                 portfolioCategoryVariants[category] ?? 'category-badge--navy'
 
               return (
-                <div
-                  key={cat}
-                  style={{ marginBottom: 'var(--sp-16)' }}
-                >
+                <div key={cat} style={{ marginBottom: 'var(--sp-16)' }}>
                   <SectionTitle
                     align="left"
                     label={label}
@@ -174,7 +196,8 @@ export default async function PortfolioPage() {
                       marginTop: 'var(--sp-10)',
                       display: 'grid',
                       gap: 'var(--sp-6)',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                      gridTemplateColumns:
+                        'repeat(auto-fill, minmax(280px, 1fr))',
                     }}
                   >
                     {list.map((item) => (
@@ -209,7 +232,9 @@ export default async function PortfolioPage() {
                             {label}
                           </span>
                           <h3 className="post-card__title">{item.title}</h3>
-                          <p className="post-card__excerpt">{item.description}</p>
+                          <p className="post-card__excerpt">
+                            {item.description}
+                          </p>
                           {item.link && (
                             <Link
                               href={item.link}

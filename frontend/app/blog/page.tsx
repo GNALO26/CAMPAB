@@ -1,5 +1,4 @@
 // app/blog/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -7,17 +6,24 @@ import { fr } from 'date-fns/locale'
 import { ArrowRight, CalendarDays } from 'lucide-react'
 
 import Card from '@/components/ui/Card'
+import JsonLd from '@/components/features/JsonLd'
 import { API_URL } from '@/lib/api'
-import { site } from '@/lib/site'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { categoryLabels } from '@/lib/utils'
 import type { ArticleCategory, ArticleListItem, Paginated } from '@/types'
 
-export const metadata: Metadata = {
-  title: 'Actualités juridiques',
+export const metadata = buildMetadata({
+  title: 'Blog juridique et actualités OHADA',
   description:
     'Blog juridique du Cabinet CAMPAB : vulgarisation du droit OHADA, conseils pratiques, éthique et actualités juridiques au Bénin.',
-  alternates: { canonical: `${site.url}/blog` },
-}
+  path: '/blog',
+  keywords: [
+    'blog juridique Bénin',
+    'actualités OHADA',
+    'conseils juridiques Cotonou',
+    'droit des affaires Bénin',
+  ],
+})
 
 const FILTERS: { value: ArticleCategory | ''; label: string }[] = [
   { value: '', label: 'Tous' },
@@ -47,7 +53,8 @@ async function getArticles(
     if (!res.ok) return EMPTY
     const data = (await res.json()) as Paginated<ArticleListItem>
     return data
-  } catch {
+  } catch (error) {
+    console.error('[blog] Échec fetch articles :', error)
     return EMPTY
   }
 }
@@ -65,7 +72,13 @@ export default async function BlogPage({ searchParams }: Props) {
 
   return (
     <>
-      {/* En-tête */}
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Blog', path: '/blog' },
+        ])}
+      />
+
       <section className="page-header" aria-labelledby="blog-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -87,10 +100,8 @@ export default async function BlogPage({ searchParams }: Props) {
         </div>
       </section>
 
-      {/* Liste */}
       <section className="section">
         <div className="container">
-          {/* Filtres */}
           <nav
             className="filter-pills"
             aria-label="Filtrer les articles par catégorie"
@@ -148,7 +159,10 @@ export default async function BlogPage({ searchParams }: Props) {
                           style={{ objectFit: 'cover' }}
                         />
                       ) : (
-                        <span className="post-card__placeholder" aria-hidden="true">
+                        <span
+                          className="post-card__placeholder"
+                          aria-hidden="true"
+                        >
                           {article.title.charAt(0)}
                         </span>
                       )}
@@ -161,9 +175,11 @@ export default async function BlogPage({ searchParams }: Props) {
                       <p className="post-card__meta">
                         <CalendarDays size={12} aria-hidden="true" />
                         {article.publishedAt
-                          ? format(new Date(article.publishedAt), 'd MMMM yyyy', {
-                              locale: fr,
-                            })
+                          ? format(
+                              new Date(article.publishedAt),
+                              'd MMMM yyyy',
+                              { locale: fr },
+                            )
                           : 'Publication à venir'}
                       </p>
                       <h2 className="post-card__title">{article.title}</h2>
@@ -179,7 +195,6 @@ export default async function BlogPage({ searchParams }: Props) {
             </div>
           )}
 
-          {/* Pagination */}
           {pagination.totalPages > 1 && (
             <nav
               className="pagination"

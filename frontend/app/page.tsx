@@ -5,7 +5,23 @@ import Card from '@/components/ui/Card'
 import SectionTitle from '@/components/ui/SectionTitle'
 import AnimatedText from '@/components/features/AnimatedText'
 import StatsCounter from '@/components/features/StatsCounter'
+import JsonLd from '@/components/features/JsonLd'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { site, expertises, valeurs } from '@/lib/site'
+
+export const metadata = buildMetadata({
+  title: 'Cabinet juridique à Cotonou, arbitrage OHADA et médiation',
+  description:
+    'Cabinet CAMPAB à Cotonou : conseil juridique, médiation et arbitrage OHADA pour les entreprises et les particuliers. Un accompagnement humain, rigoureux et confidentiel.',
+  path: '/',
+  keywords: [
+    'cabinet juridique Cotonou',
+    'arbitrage OHADA Bénin',
+    'médiation Bénin',
+    'avocat Cotonou',
+    'conseil juridique Cotonou',
+  ],
+})
 
 export default function HomePage() {
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
@@ -14,9 +30,11 @@ export default function HomePage() {
 
   return (
     <>
-      {/* ============================================================
-          HERO
-          ============================================================ */}
+      <JsonLd
+        data={breadcrumbJsonLd([{ name: 'Accueil', path: '/' }])}
+      />
+
+      {/* HERO */}
       <section className="page-hero">
         <div className="page-hero__bg" aria-hidden="true">
           <div className="page-hero__geo page-hero__geo--1" />
@@ -28,7 +46,9 @@ export default function HomePage() {
         <div className="page-hero__content">
           <div className="page-hero__eyebrow">
             <span className="page-hero__eyebrow-line" aria-hidden="true" />
-            <span className="page-hero__eyebrow-text">Cabinet juridique à Cotonou</span>
+            <span className="page-hero__eyebrow-text">
+              Cabinet juridique à Cotonou
+            </span>
           </div>
 
           <h1 className="page-hero__title">
@@ -66,8 +86,14 @@ export default function HomePage() {
 
         <div className="page-hero__visual">
           <div className="photo-frame">
-            <span className="photo-frame__corner photo-frame__corner--tl" aria-hidden="true" />
-            <span className="photo-frame__corner photo-frame__corner--br" aria-hidden="true" />
+            <span
+              className="photo-frame__corner photo-frame__corner--tl"
+              aria-hidden="true"
+            />
+            <span
+              className="photo-frame__corner photo-frame__corner--br"
+              aria-hidden="true"
+            />
             <Image
               src="/images/portrait.jpg"
               alt="Sètondji Prudencia ABODE, juriste, médiatrice et arbitre OHADA"
@@ -83,7 +109,9 @@ export default function HomePage() {
             <div className="photo-card photo-card--status">
               <span className="photo-card__status-dot" aria-hidden="true" />
               <div>
-                <p className="photo-card__label" style={{ margin: 0 }}>Disponible</p>
+                <p className="photo-card__label" style={{ margin: 0 }}>
+                  Disponible
+                </p>
                 <p
                   style={{
                     fontSize: '0.75rem',
@@ -100,18 +128,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================
-          STATISTIQUES
-          ============================================================ */}
+      {/* STATISTIQUES */}
       <section className="section--navy" style={{ paddingBlock: 'var(--sp-16)' }}>
         <div className="container">
           <StatsCounter />
         </div>
       </section>
 
-      {/* ============================================================
-          PRÉSENTATION DU CABINET
-          ============================================================ */}
+      {/* PRÉSENTATION DU CABINET */}
       <section className="section">
         <div className="container">
           <div
@@ -168,9 +192,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================
-          EXPERTISES
-          ============================================================ */}
+      {/* EXPERTISES */}
       <section className="section section--alt">
         <div className="container">
           <SectionTitle
@@ -189,7 +211,10 @@ export default function HomePage() {
           >
             {expertises.map((e) => (
               <Card key={e.title} hover padding="md">
-                <div className="service-card__icon" style={{ marginBottom: 'var(--sp-5)' }}>
+                <div
+                  className="service-card__icon"
+                  style={{ marginBottom: 'var(--sp-5)' }}
+                >
                   <span
                     style={{
                       fontFamily: 'var(--font-display)',
@@ -201,7 +226,10 @@ export default function HomePage() {
                     {e.title.charAt(0)}
                   </span>
                 </div>
-                <h3 className="service-card__title" style={{ fontSize: 'var(--text-lg)' }}>
+                <h3
+                  className="service-card__title"
+                  style={{ fontSize: 'var(--text-lg)' }}
+                >
                   {e.title}
                 </h3>
                 <p className="service-card__desc">{e.desc}</p>
@@ -211,9 +239,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================
-          VALEURS
-          ============================================================ */}
+      {/* VALEURS */}
       <section className="section">
         <div className="container">
           <SectionTitle
@@ -286,16 +312,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================
-          CTA
-          ============================================================ */}
+      {/* CTA */}
       <section className="section">
         <div className="container">
           <div className="cta-block">
             <div className="cta-block__geo cta-block__geo--1" aria-hidden="true" />
             <div className="cta-block__geo cta-block__geo--2" aria-hidden="true" />
             <div className="cta-block__inner">
-              <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 4vw, 3.5rem)', lineHeight: 1.15 }}>
+              <h2
+                style={{
+                  color: '#fff',
+                  fontSize: 'clamp(2rem, 4vw, 3.5rem)',
+                  lineHeight: 1.15,
+                }}
+              >
                 Un différend ? Parlons-en.
               </h2>
               <p

@@ -1,5 +1,4 @@
 // app/contact/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   CalendarDays,
@@ -13,14 +12,21 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle'
 import ContactForm from '@/components/features/ContactForm'
 import JsonLd from '@/components/features/JsonLd'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'Contact',
+export const metadata = buildMetadata({
+  title: 'Contact et rendez-vous',
   description:
     'Contactez le Cabinet CAMPAB à Cotonou. Consultation juridique, médiation et arbitrage OHADA. Réponse sous 24 à 48 heures ouvrées.',
-  alternates: { canonical: `${site.url}/contact` },
-}
+  path: '/contact',
+  keywords: [
+    'contact avocat Cotonou',
+    'consultation juridique Bénin',
+    'prendre rendez-vous juriste',
+    'cabinet juridique Cotonou',
+  ],
+})
 
 export default function ContactPage() {
   const whatsappUrl = `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(
@@ -46,21 +52,16 @@ export default function ContactPage() {
     },
   }
 
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${site.url}/` },
-      { '@type': 'ListItem', position: 2, name: 'Contact', item: `${site.url}/contact` },
-    ],
-  }
-
   return (
     <>
       <JsonLd data={contactJsonLd} />
-      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Contact', path: '/contact' },
+        ])}
+      />
 
-      {/* En-tête */}
       <section className="page-header" aria-labelledby="contact-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -92,11 +93,9 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Coordonnées + formulaire */}
       <section aria-label="Formulaire de contact et coordonnées">
         <div className="container">
           <div className="contact-layout">
-            {/* Colonne gauche */}
             <aside aria-label="Coordonnées du cabinet">
               <h2
                 style={{
@@ -213,7 +212,6 @@ export default function ContactPage() {
               </div>
             </aside>
 
-            {/* Colonne droite : formulaire */}
             <div className="contact-form-box">
               <h2
                 style={{
@@ -241,7 +239,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Localisation */}
       <section className="section section--alt" aria-label="Localisation">
         <div className="container">
           <SectionTitle

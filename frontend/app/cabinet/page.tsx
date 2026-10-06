@@ -1,24 +1,26 @@
 // app/cabinet/page.tsx
-import type { Metadata } from 'next'
 import Image from 'next/image'
-import {
-  HeartHandshake,
-  Scale,
-  Target,
-  Users,
-} from 'lucide-react'
+import { HeartHandshake, Scale, Target, Users } from 'lucide-react'
 
 import SectionTitle from '@/components/ui/SectionTitle'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import JsonLd from '@/components/features/JsonLd'
+import { buildMetadata, breadcrumbJsonLd } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'Le Cabinet',
+export const metadata = buildMetadata({
+  title: 'Le Cabinet juridique CAMPAB',
   description:
     'Découvrez le Cabinet CAMPAB à Cotonou : un cabinet juridique dédié à la médiation, à l’arbitrage OHADA et au conseil des entreprises et des particuliers. Un accompagnement humain, rigoureux et confidentiel.',
-  alternates: { canonical: `${site.url}/cabinet` },
-}
+  path: '/cabinet',
+  keywords: [
+    'cabinet juridique Cotonou',
+    'présentation cabinet avocat Bénin',
+    'CAMPAB',
+    'juriste Cotonou',
+  ],
+})
 
 const engagements = [
   {
@@ -81,7 +83,13 @@ export default function CabinetPage() {
 
   return (
     <>
-      {/* En-tête */}
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Le Cabinet', path: '/cabinet' },
+        ])}
+      />
+
       <section className="page-header" aria-labelledby="cabinet-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -103,7 +111,6 @@ export default function CabinetPage() {
         </div>
       </section>
 
-      {/* Présentation */}
       <section className="section">
         <div className="container">
           <div
@@ -169,7 +176,6 @@ export default function CabinetPage() {
         </div>
       </section>
 
-      {/* Engagements */}
       <section className="section section--soft">
         <div className="container">
           <SectionTitle
@@ -217,7 +223,6 @@ export default function CabinetPage() {
         </div>
       </section>
 
-      {/* Parcours */}
       <section className="section">
         <div className="container">
           <SectionTitle
@@ -304,14 +309,18 @@ export default function CabinetPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="section">
         <div className="container">
           <div className="cta-block">
             <div className="cta-block__geo cta-block__geo--1" aria-hidden="true" />
             <div className="cta-block__geo cta-block__geo--2" aria-hidden="true" />
             <div className="cta-block__inner">
-              <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 3rem)' }}>
+              <h2
+                style={{
+                  color: '#fff',
+                  fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+                }}
+              >
                 Besoin d’un accompagnement juridique ?
               </h2>
               <p

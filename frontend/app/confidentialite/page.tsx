@@ -1,16 +1,16 @@
 ﻿// app/confidentialite/page.tsx
-import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { buildMetadata } from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Politique de confidentialité',
   description:
     'Politique de protection des données personnelles du Cabinet CAMPAB. Comment vos données sont collectées, utilisées et protégées.',
-  alternates: { canonical: `${site.url}/confidentialite` },
-  robots: { index: true, follow: true },
-}
+  path: '/confidentialite',
+  noindex: false,
+})
 
 const lastUpdate = new Intl.DateTimeFormat('fr-FR', {
   year: 'numeric',
@@ -23,7 +23,6 @@ export default function ConfidentialitePage() {
 
   return (
     <>
-      {/* En-tête */}
       <section className="page-header" aria-labelledby="confidentialite-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -49,7 +48,6 @@ export default function ConfidentialitePage() {
         </div>
       </section>
 
-      {/* Contenu */}
       <section className="section">
         <div className="container container--md">
           <article className="legal-content">
@@ -91,7 +89,9 @@ export default function ConfidentialitePage() {
               <li>Pays de résidence</li>
               <li>Nom de l’organisation ou de l’entreprise, facultatif</li>
               <li>Description du litige ou de la demande</li>
-              <li>Type de service souhaité : consultation, arbitrage, médiation</li>
+              <li>
+                Type de service souhaité : consultation, arbitrage, médiation
+              </li>
               <li>Niveau d’urgence</li>
               <li>Date et heure du rendez-vous souhaité</li>
             </ul>
@@ -125,8 +125,8 @@ export default function ConfidentialitePage() {
 
             <h2>5. Durée de conservation</h2>
             <p>
-              Les données personnelles sont conservées pour une durée maximale de{' '}
-              <strong>3 ans</strong> à compter du dernier contact avec
+              Les données personnelles sont conservées pour une durée maximale
+              de <strong>3 ans</strong> à compter du dernier contact avec
               l’utilisateur, sauf obligation légale de conservation plus longue
               ou demande de suppression anticipée.
             </p>
@@ -134,11 +134,13 @@ export default function ConfidentialitePage() {
             <h2>6. Destinataires des données</h2>
             <p>
               Les données collectées sont destinées uniquement à{' '}
-              {site.shortName}. Elles ne sont en aucun cas transmises, vendues ou
-              cédées à des tiers, sauf :
+              {site.shortName}. Elles ne sont en aucun cas transmises, vendues
+              ou cédées à des tiers, sauf :
             </p>
             <ul>
-              <li>Obligation légale ou demande d’une autorité compétente.</li>
+              <li>
+                Obligation légale ou demande d’une autorité compétente.
+              </li>
               <li>
                 Prestataires techniques, hébergeur Netlify et service d’envoi
                 d’emails, agissant sous contrat de confidentialité.
@@ -150,8 +152,8 @@ export default function ConfidentialitePage() {
               {site.shortName} met en œuvre des mesures techniques et
               organisationnelles appropriées pour protéger les données
               personnelles contre tout accès non autorisé, modification,
-              divulgation ou destruction. Le site utilise le protocole HTTPS pour
-              sécuriser les échanges.
+              divulgation ou destruction. Le site utilise le protocole HTTPS
+              pour sécuriser les échanges.
             </p>
 
             <h2>8. Vos droits</h2>
@@ -169,8 +171,8 @@ export default function ConfidentialitePage() {
                 inexactes ou incomplètes.
               </li>
               <li>
-                <strong>Droit à l’effacement :</strong> demander la suppression de
-                vos données.
+                <strong>Droit à l’effacement :</strong> demander la suppression
+                de vos données.
               </li>
               <li>
                 <strong>Droit à la limitation :</strong> restreindre
@@ -200,9 +202,9 @@ export default function ConfidentialitePage() {
             <h2>9. Cookies</h2>
             <p>
               Le site {domain} utilise uniquement des cookies techniques
-              nécessaires à son bon fonctionnement, notamment la mémorisation du
-              thème clair ou sombre. Aucun cookie publicitaire ou de profilage
-              n’est utilisé.
+              nécessaires à son bon fonctionnement, notamment la mémorisation
+              du thème clair ou sombre. Aucun cookie publicitaire ou de
+              profilage n’est utilisé.
             </p>
             <p>
               Vous pouvez à tout moment désactiver les cookies dans les
@@ -211,18 +213,19 @@ export default function ConfidentialitePage() {
 
             <h2>10. Mesure d’audience</h2>
             <p>
-              Si un outil de mesure d’audience est activé, celui-ci est configuré
-              pour anonymiser les adresses IP. Les données collectées, pages
-              visitées, durée de visite, provenance géographique, ne permettent
-              pas de vous identifier personnellement.
+              Si un outil de mesure d’audience est activé, celui-ci est
+              configuré pour anonymiser les adresses IP. Les données
+              collectées, pages visitées, durée de visite, provenance
+              géographique, ne permettent pas de vous identifier
+              personnellement.
             </p>
 
             <h2>11. Modifications de la politique</h2>
             <p>
               {site.shortName} se réserve le droit de modifier la présente
               politique de confidentialité à tout moment, afin de se conformer
-              aux évolutions légales ou techniques. Les utilisateurs sont invités
-              à la consulter régulièrement.
+              aux évolutions légales ou techniques. Les utilisateurs sont
+              invités à la consulter régulièrement.
             </p>
 
             <h2>12. Contact</h2>
@@ -247,9 +250,8 @@ export default function ConfidentialitePage() {
 
             <p>
               Pour plus d’informations sur le cadre légal du site, consultez
-              également les{' '}
-              <Link href="/mentions-legales">mentions légales</Link> et les{' '}
-              <Link href="/cgu">conditions générales d’utilisation</Link>.
+              également les <Link href="/mentions-legales">mentions légales</Link>{' '}
+              et les <Link href="/cgu">conditions générales d’utilisation</Link>.
             </p>
 
             <div className="legal-footer">

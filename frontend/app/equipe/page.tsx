@@ -1,5 +1,4 @@
 // app/equipe/page.tsx
-import type { Metadata } from 'next'
 import {
   ArrowRight,
   Award,
@@ -15,14 +14,27 @@ import Button from '@/components/ui/Button'
 import ImageCarousel, {
   type CarouselSlide,
 } from '@/components/features/ImageCarousel'
+import JsonLd from '@/components/features/JsonLd'
+import {
+  buildMetadata,
+  breadcrumbJsonLd,
+  personJsonLd,
+} from '@/lib/seo'
 import { site } from '@/lib/site'
 
-export const metadata: Metadata = {
-  title: 'Notre équipe',
+export const metadata = buildMetadata({
+  title: 'Me Prudencia ABODE BADOU, juriste et arbitre OHADA',
   description:
-    'Sètondji Prudencia ABODE, juriste, médiatrice et arbitre OHADA. Découvrez son parcours, ses formations et sa vision du droit au service des entreprises et des particuliers.',
-  alternates: { canonical: `${site.url}/equipe` },
-}
+    'Sètondji Prudencia ABODE, juriste, médiatrice et arbitre OHADA. Découvrez son parcours, ses formations et sa vision du droit au service des entreprises et des particuliers à Cotonou.',
+  path: '/equipe',
+  keywords: [
+    'Prudencia ABODE',
+    'juriste Cotonou',
+    'médiatrice Bénin',
+    'arbitre OHADA',
+    'cabinet juridique Cotonou',
+  ],
+})
 
 const portraits: CarouselSlide[] = [
   {
@@ -103,7 +115,14 @@ export default function EquipePage() {
 
   return (
     <>
-      {/* En-tête */}
+      <JsonLd data={personJsonLd()} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Accueil', path: '/' },
+          { name: 'Équipe', path: '/equipe' },
+        ])}
+      />
+
       <section className="page-header" aria-labelledby="equipe-title">
         <div className="page-header__bg" aria-hidden="true" />
         <div className="container">
@@ -124,7 +143,6 @@ export default function EquipePage() {
         </div>
       </section>
 
-      {/* Portrait + biographie */}
       <section className="section">
         <div className="container">
           <div
@@ -221,7 +239,6 @@ export default function EquipePage() {
         </div>
       </section>
 
-      {/* Compétences */}
       <section className="section section--soft">
         <div className="container">
           <SectionTitle
@@ -260,7 +277,6 @@ export default function EquipePage() {
         </div>
       </section>
 
-      {/* Formation + Langues */}
       <section className="section">
         <div className="container">
           <div
@@ -413,14 +429,18 @@ export default function EquipePage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="section">
         <div className="container">
           <div className="cta-block">
             <div className="cta-block__geo cta-block__geo--1" aria-hidden="true" />
             <div className="cta-block__geo cta-block__geo--2" aria-hidden="true" />
             <div className="cta-block__inner">
-              <h2 style={{ color: '#fff', fontSize: 'clamp(2rem, 3.5vw, 3rem)' }}>
+              <h2
+                style={{
+                  color: '#fff',
+                  fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+                }}
+              >
                 Envie d’échanger ?
               </h2>
               <p
