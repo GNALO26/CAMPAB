@@ -12,7 +12,6 @@ function normalizeBaseUrl(input: string | undefined): string {
 
   let url = input.trim().replace(/\/$/, '')
 
-  // Si l'URL ne contient ni /api ni http://localhost, on ajoute /api
   if (!url.endsWith('/api') && !url.includes('localhost')) {
     url = `${url}/api`
   }
@@ -77,7 +76,7 @@ export class ApiException extends Error {
 }
 
 /* ============================================================
-   Requête bas niveau
+   Requête bas niveau (JSON)
    ============================================================ */
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
@@ -141,7 +140,8 @@ export async function apiFetch<T = unknown>(
     }
     throw new ApiException({
       status: 0,
-      message: 'Impossible de joindre le serveur. Vérifiez votre connexion internet.',
+      message:
+        'Impossible de joindre le serveur. Vérifiez votre connexion internet.',
     })
   } finally {
     clearTimeout(timeoutId)
@@ -182,6 +182,74 @@ export async function apiFetch<T = unknown>(
   return data as T
 }
 
+/* ============================================================
+   Requête bas niveau (binaire)
+   Utilisé pour les PDF et autres fichiers retournés en
+   application/octet-stream ou application/pdf.
+   ============================================================ */
+export async function apiFetchBlob(
+  path: string,
+  options: { auth?: boolean; timeoutMs?: number } = {},
+): Promise<Blob> {
+  const { auth = false, timeoutMs = DEFAULT_TIMEOUT } = options
+
+  const finalHeaders = new Headers()
+  if (auth) {
+    const token = getToken()
+    if (token) finalHeaders.set('Authorization', `Bearer ${token}`)
+  }
+
+  const url = /^https?:\/\//.test(path) ? path : `${API_URL}${path}`
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: finalHeaders,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiException({
+        status: 0,
+        message: 'La requête a expiré. Vérifiez votre connexion et réessayez.',
+      })
+    }
+    throw new ApiException({
+      status: 0,
+      message:
+        'Impossible de joindre le serveur. Vérifiez votre connexion internet.',
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      const data = (await response.json().catch(() => null)) as {
+        error?: string
+        message?: string
+      } | null
+      throw new ApiException({
+        status: response.status,
+        message:
+          data?.error || data?.message || `Erreur ${response.status}`,
+      })
+    }
+    throw new ApiException({
+      status: response.status,
+      message: `Erreur ${response.status}`,
+    })
+  }
+
+  return response.blob()
+}
+
 export const api = {
   get: <T>(path: string, auth = false) =>
     apiFetch<T>(path, { method: 'GET', auth }),
@@ -205,4 +273,7 @@ export const api = {
       auth: true,
       isFormData: true,
     }),
+
+  /** Télécharge un binaire (PDF, image, etc.). */
+  blob: (path: string, auth = true) => apiFetchBlob(path, { auth }),
 }

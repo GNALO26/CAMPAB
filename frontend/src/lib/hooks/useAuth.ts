@@ -8,12 +8,34 @@ import type { Admin } from "@/types";
 
 /* ============================================================
    Endpoints alignés sur le backend Express
-   Voir backend/src/routes/auth.routes.ts
    ============================================================ */
 const AUTH_LOGIN_ENDPOINT = "/auth/login";
 const AUTH_ME_ENDPOINT = "/auth/me";
 const LOGIN_PATH = "/admin/login";
 const DASHBOARD_PATH = "/admin";
+
+/* ============================================================
+   Cache mémoire partagé entre tous les composants
+   Évite que layout + page déclenchent deux /auth/me distincts.
+   ============================================================ */
+let meCache: Admin | null = null;
+let meCacheAt = 0;
+const ME_CACHE_TTL_MS = 30_000;
+
+function readMeCache(): Admin | null {
+  if (meCache && Date.now() - meCacheAt < ME_CACHE_TTL_MS) return meCache;
+  return null;
+}
+
+function writeMeCache(admin: Admin | null): void {
+  meCache = admin;
+  meCacheAt = admin ? Date.now() : 0;
+}
+
+function invalidateMeCache(): void {
+  meCache = null;
+  meCacheAt = 0;
+}
 
 /* ============================================================
    Types
@@ -28,7 +50,6 @@ interface UseAuthOptions {
   skipRedirect?: boolean;
   /**
    * @deprecated Conservé pour compatibilité. Utilisez `skipRedirect`.
-   * Le comportement par défaut (redirection si non authentifié) s'applique.
    */
   redirectIfNotAuth?: boolean;
 }
@@ -49,27 +70,22 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [admin, setAdmin] = useState<Admin | null>(() => readMeCache());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /* Détection de la page de login : garantit l'absence de boucle
-     même si l'appelant oublie `skipRedirect`. */
   const isLoginPage = pathname === LOGIN_PATH;
   const shouldSkipRedirect = skipRedirect || isLoginPage;
 
-  /* Garde anti-fuite : true dès qu'on quitte le hook. */
   const cancelledRef = useRef(false);
 
-  /* ----------------------------------------------------------
-     Vérification de la session au montage (et au changement de path)
-     ---------------------------------------------------------- */
   useEffect(() => {
     cancelledRef.current = false;
 
     const token = getToken();
 
     if (!token) {
+      invalidateMeCache();
       setAdmin(null);
       setLoading(false);
       if (!shouldSkipRedirect) {
@@ -80,16 +96,28 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
       };
     }
 
+    /* Cache valide : on hydrate immédiatement, sans requête réseau */
+    const cached = readMeCache();
+    if (cached) {
+      setAdmin(cached);
+      setLoading(false);
+      return () => {
+        cancelledRef.current = true;
+      };
+    }
+
     api
       .get<Admin>(AUTH_ME_ENDPOINT, true)
       .then((me) => {
         if (cancelledRef.current) return;
+        writeMeCache(me);
         setAdmin(me);
         setLoading(false);
       })
       .catch((err) => {
         if (cancelledRef.current) return;
         console.error("[useAuth] Échec de vérification de session :", err);
+        invalidateMeCache();
         clearToken();
         setAdmin(null);
         setLoading(false);
@@ -103,9 +131,6 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
     };
   }, [router, shouldSkipRedirect]);
 
-  /* ----------------------------------------------------------
-     Connexion
-     ---------------------------------------------------------- */
   const login = useCallback(
     async (email: string, password: string): Promise<void> => {
       setError(null);
@@ -123,6 +148,7 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
         }
 
         setToken(res.token);
+        writeMeCache(res.admin);
         setAdmin(res.admin);
         setError(null);
         router.push(DASHBOARD_PATH);
@@ -136,11 +162,9 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
     [router],
   );
 
-  /* ----------------------------------------------------------
-     Déconnexion
-     ---------------------------------------------------------- */
   const logout = useCallback((): void => {
     clearToken();
+    invalidateMeCache();
     setAdmin(null);
     setError(null);
     router.push(LOGIN_PATH);

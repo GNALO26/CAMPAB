@@ -1,21 +1,38 @@
 // app/admin/messages/page.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Mail, Trash2, CheckCircle2, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  MailOpen,
+  Phone,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { api } from "@/lib/api";
-import PageHeader from "@/components/admin/PageHeader";
-import EmptyState from "@/components/admin/EmptyState";
+
+import { api, ApiException } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/useAuth";
 import type { ContactMessage } from "@/types";
 
-/* ============================================================
-   Affiche le nom complet d'un contact.
-   Compatible avec les anciens documents qui ne contenaient
-   que le champ `name` (déprécié).
-   ============================================================ */
+type Filter = "all" | "unread" | "read";
+
+function formatDate(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 function getContactName(contact: {
   firstName?: string | null;
   lastName?: string | null;
@@ -29,179 +46,520 @@ function getContactName(contact: {
   return "Anonyme";
 }
 
-export default function MessagesPage() {
+export default function AdminMessagesPage() {
+  const { admin, loading: authLoading } = useAuth();
+
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  /* ----------------------------------------------------------
+  /* ============================================================
      Chargement des messages
-     ---------------------------------------------------------- */
-  const load = useCallback(async () => {
+     Endpoint backend : GET /api/contact (protégé)
+     ============================================================ */
+  const fetchMessages = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<ContactMessage[]>("/contact", true);
       setMessages(data);
     } catch (err) {
-      console.error("[admin/messages] Échec du chargement :", err);
-      toast.error("Impossible de charger les messages");
+      const message =
+        err instanceof ApiException
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Impossible de charger les messages.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!authLoading && admin) {
+      void fetchMessages();
+    }
+  }, [authLoading, admin, fetchMessages]);
 
-  /* ----------------------------------------------------------
-     Actions
-     ---------------------------------------------------------- */
-  async function markRead(id: string) {
-    setBusy(id);
+  /* ============================================================
+     Filtrage local
+     ============================================================ */
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return messages.filter((msg) => {
+      if (filter === "unread" && msg.read) return false;
+      if (filter === "read" && !msg.read) return false;
+      if (!needle) return true;
+      const haystack = [
+        getContactName(msg),
+        msg.email,
+        msg.phone ?? "",
+        msg.subject,
+        msg.message,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [messages, filter, query]);
+
+  const unreadCount = useMemo(
+    () => messages.filter((m) => !m.read).length,
+    [messages],
+  );
+
+  /* ============================================================
+     Actions — endpoints corrigés
+     PATCH  /api/contact/:id/read
+     DELETE /api/contact/:id
+     ============================================================ */
+  async function toggleRead(msg: ContactMessage) {
+    setBusyId(msg.id);
     try {
-      await api.patch(`/contact/${id}/read`, {});
-      await load();
+      const next = !msg.read;
+      await api.patch(`/contact/${msg.id}/read`, { read: next }, true);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, read: next } : m)),
+      );
+      toast.success(next ? "Marqué comme lu." : "Marqué comme non lu.");
     } catch (err) {
-      console.error("[admin/messages] Échec markRead :", err);
-      toast.error("Impossible de marquer le message comme lu");
+      const message =
+        err instanceof ApiException
+          ? err.message
+          : "La mise à jour a échoué.";
+      toast.error(message);
     } finally {
-      setBusy(null);
+      setBusyId(null);
     }
   }
 
-  async function remove(id: string) {
-    if (typeof window === "undefined") return;
-    if (!window.confirm("Supprimer ce message ?")) return;
-
-    setBusy(id);
+  async function removeMessage(msg: ContactMessage) {
+    if (
+      !window.confirm(
+        `Supprimer définitivement le message de ${getContactName(msg)} ?`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(msg.id);
     try {
-      await api.delete(`/contact/${id}`);
-      toast.success("Message supprimé");
-      await load();
+      await api.delete(`/contact/${msg.id}`, true);
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+      toast.success("Message supprimé.");
     } catch (err) {
-      console.error("[admin/messages] Échec suppression :", err);
-      toast.error("Impossible de supprimer le message");
+      const message =
+        err instanceof ApiException
+          ? err.message
+          : "La suppression a échoué.";
+      toast.error(message);
     } finally {
-      setBusy(null);
+      setBusyId(null);
     }
   }
 
-  const unreadCount = messages.filter((m) => !m.read).length;
+  /* ============================================================
+     États de chargement / erreur
+     ============================================================ */
+  if (authLoading || loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "40vh",
+          gap: "var(--sp-3)",
+          color: "var(--text-500)",
+        }}
+      >
+        <Loader2 size={20} className="animate-spin" aria-hidden="true" />
+        <span>Chargement des messages…</span>
+      </div>
+    );
+  }
 
-  /* ----------------------------------------------------------
-     Rendu
-     ---------------------------------------------------------- */
+  if (error) {
+    return (
+      <div
+        style={{
+          maxWidth: "32rem",
+          margin: "var(--sp-12) auto",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            margin: "0 auto var(--sp-5)",
+            borderRadius: "50%",
+            background: "var(--danger-soft)",
+            color: "var(--danger)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          aria-hidden="true"
+        >
+          <AlertCircle size={24} />
+        </div>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-2xl)",
+            color: "var(--text-900)",
+            marginBottom: "var(--sp-3)",
+          }}
+        >
+          Erreur de chargement
+        </h2>
+        <p style={{ color: "var(--text-500)", marginBottom: "var(--sp-6)" }}>
+          {error}
+        </p>
+        <button
+          type="button"
+          className="btn btn--primary btn--md"
+          onClick={() => void fetchMessages()}
+        >
+          <RefreshCw size={16} aria-hidden="true" />
+          <span>Réessayer</span>
+        </button>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     Rendu principal
+     ============================================================ */
   return (
     <div className="p-6 lg:p-10 max-w-7xl">
-      <PageHeader
-        title="Messages de contact"
-        subtitle={`${messages.length} message(s) · ${unreadCount} non lu(s)`}
-      />
-
-      {loading ? (
-        <div className="p-16 text-center">
-          <Loader2 className="animate-spin mx-auto text-navy-deep" size={28} />
+      <header
+        style={{
+          marginBottom: "var(--sp-8)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--sp-4)",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-3xl)",
+              fontWeight: 600,
+              color: "var(--text-900)",
+              marginBottom: "var(--sp-2)",
+            }}
+          >
+            Messages de contact
+          </h1>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--text-500)" }}>
+            {messages.length} message{messages.length > 1 ? "s" : ""} reçu
+            {messages.length > 1 ? "s" : ""}
+            {unreadCount > 0 &&
+              ` · ${unreadCount} non lu${unreadCount > 1 ? "s" : ""}`}
+          </p>
         </div>
-      ) : messages.length === 0 ? (
-        <div className="bg-white border border-line rounded-card">
-          <EmptyState
-            icon={Mail}
-            title="Aucun message"
-            description="Les messages du formulaire de contact s'afficheront ici."
+
+        <button
+          type="button"
+          className="btn btn--outline btn--md"
+          onClick={() => void fetchMessages()}
+          disabled={loading}
+        >
+          <RefreshCw
+            size={16}
+            aria-hidden="true"
+            className={loading ? "animate-spin" : undefined}
+          />
+          <span>Actualiser</span>
+        </button>
+      </header>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--sp-3)",
+          marginBottom: "var(--sp-6)",
+          alignItems: "center",
+        }}
+      >
+        <div className="filter-pills" style={{ marginBottom: 0 }}>
+          {(
+            [
+              { value: "all", label: "Tous" },
+              { value: "unread", label: `Non lus (${unreadCount})` },
+              { value: "read", label: "Lus" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`filter-pill ${filter === opt.value ? "is-active" : ""}`}
+              onClick={() => setFilter(opt.value)}
+              aria-pressed={filter === opt.value}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            position: "relative",
+            flex: 1,
+            minWidth: 220,
+            maxWidth: 380,
+          }}
+        >
+          <Search
+            size={16}
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              left: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--text-300)",
+              pointerEvents: "none",
+            }}
+          />
+          <input
+            type="search"
+            className="form-control"
+            placeholder="Rechercher un nom, email, sujet…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            style={{ paddingLeft: "2.25rem" }}
+            aria-label="Rechercher dans les messages"
           />
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {messages.map((m) => {
-            const fullName = getContactName(m);
-            const isBusy = busy === m.id;
+      </div>
 
+      {filtered.length === 0 ? (
+        <div
+          className="empty-state"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          <p className="empty-state__title">
+            {messages.length === 0
+              ? "Aucun message pour le moment"
+              : "Aucun message ne correspond"}
+          </p>
+          <p className="empty-state__desc">
+            {messages.length === 0
+              ? "Les messages envoyés depuis le formulaire de contact apparaîtront ici."
+              : "Essayez de modifier les filtres ou la recherche."}
+          </p>
+        </div>
+      ) : (
+        <ul
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--sp-4)",
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          {filtered.map((msg) => {
+            const isBusy = busyId === msg.id;
+            const fullName = getContactName(msg);
             return (
-              <div
-                key={m.id}
-                className={`bg-white border rounded-card p-6 transition-all ${
-                  m.read
-                    ? "border-line opacity-80"
-                    : "border-olive/40 shadow-soft"
-                }`}
+              <li
+                key={msg.id}
+                className="card"
+                style={{
+                  padding: "var(--sp-6)",
+                  borderLeft: msg.read
+                    ? "3px solid var(--border)"
+                    : "3px solid var(--accent)",
+                }}
               >
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className="font-medium text-ink">{fullName}</p>
-                      {!m.read && (
-                        <span className="text-[10px] uppercase tracking-wider bg-olive text-white px-2 py-0.5 rounded-full">
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "var(--sp-4)",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 240 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--sp-3)",
+                        marginBottom: "var(--sp-2)",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <strong
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "var(--text-lg)",
+                          color: "var(--text-900)",
+                        }}
+                      >
+                        {fullName}
+                      </strong>
+
+                      {!msg.read && (
+                        <span
+                          className="category-badge category-badge--sky"
+                          aria-label="Non lu"
+                        >
                           Nouveau
                         </span>
                       )}
+
+                      <span
+                        style={{
+                          fontSize: "var(--text-xs)",
+                          color: "var(--text-300)",
+                          marginLeft: "auto",
+                        }}
+                      >
+                        {formatDate(msg.createdAt)}
+                      </span>
                     </div>
 
-                    <p className="text-xs text-ink-soft mt-1">
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "var(--sp-4)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--text-500)",
+                        marginBottom: "var(--sp-3)",
+                      }}
+                    >
                       <a
-                        href={`mailto:${m.email}`}
-                        className="hover:text-olive"
+                        href={`mailto:${msg.email}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: "inherit",
+                        }}
                       >
-                        {m.email}
+                        <Mail size={14} aria-hidden="true" />
+                        {msg.email}
                       </a>
-                      {m.phone && (
-                        <>
-                          {" · "}
-                          <a
-                            href={`tel:${m.phone.replace(/\s/g, "")}`}
-                            className="hover:text-olive"
-                          >
-                            {m.phone}
-                          </a>
-                        </>
+                      {msg.phone && (
+                        <a
+                          href={`tel:${msg.phone.replace(/\s/g, "")}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            color: "inherit",
+                          }}
+                        >
+                          <Phone size={14} aria-hidden="true" />
+                          {msg.phone}
+                        </a>
                       )}
+                    </div>
+
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--text-900)",
+                        marginBottom: "var(--sp-2)",
+                      }}
+                    >
+                      {msg.subject}
                     </p>
 
-                    <p className="text-sm text-navy-deep mt-3 font-medium">
-                      {m.subject}
-                    </p>
-                    <p className="text-sm text-ink-soft mt-2 whitespace-pre-line">
-                      {m.message}
-                    </p>
-                    <p className="text-xs text-ink-soft mt-3">
-                      Reçu le{" "}
-                      {format(
-                        new Date(m.createdAt),
-                        "dd MMMM yyyy 'à' HH:mm",
-                        { locale: fr },
-                      )}
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--text-500)",
+                        lineHeight: 1.7,
+                        whiteSpace: "pre-line",
+                        margin: 0,
+                      }}
+                    >
+                      {msg.message}
                     </p>
                   </div>
 
-                  <div className="flex gap-2 shrink-0">
-                    {!m.read && (
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => markRead(m.id)}
-                        title="Marquer comme lu"
-                        aria-label="Marquer comme lu"
-                        className="p-2 rounded-md border border-line hover:bg-olive hover:text-white transition disabled:opacity-50"
-                      >
-                        <CheckCircle2 size={16} />
-                      </button>
-                    )}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "var(--sp-2)",
+                      flexShrink: 0,
+                    }}
+                  >
                     <button
                       type="button"
+                      className="btn btn--outline btn--sm"
+                      onClick={() => void toggleRead(msg)}
                       disabled={isBusy}
-                      onClick={() => remove(m.id)}
-                      title="Supprimer"
-                      aria-label="Supprimer"
-                      className="p-2 rounded-md border border-line hover:bg-red-50 hover:text-red-700 transition disabled:opacity-50"
+                      aria-label={
+                        msg.read ? "Marquer comme non lu" : "Marquer comme lu"
+                      }
                     >
-                      <Trash2 size={16} />
+                      {isBusy ? (
+                        <Loader2
+                          size={14}
+                          className="animate-spin"
+                          aria-hidden="true"
+                        />
+                      ) : msg.read ? (
+                        <Mail size={14} aria-hidden="true" />
+                      ) : (
+                        <MailOpen size={14} aria-hidden="true" />
+                      )}
+                      <span>{msg.read ? "Non lu" : "Lu"}</span>
                     </button>
+
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => void removeMessage(msg)}
+                      disabled={isBusy}
+                      aria-label={`Supprimer le message de ${fullName}`}
+                      style={{ color: "var(--danger)" }}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                      <span>Supprimer</span>
+                    </button>
+
+                    {msg.read && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: "var(--text-xs)",
+                          color: "var(--accent-green)",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <CheckCircle2 size={12} aria-hidden="true" />
+                        Traité
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );
