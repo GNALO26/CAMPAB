@@ -26,7 +26,7 @@ const envSchema = z.object({
   /* --- Frontend (CORS) --- */
   FRONTEND_URL: z.string().default("http://localhost:3000"),
 
-  /* --- Email : Gmail API OAuth 2.0 (recommandé) --- */
+  /* --- Email : Gmail API OAuth 2.0 --- */
   GMAIL_CLIENT_ID: z.string().min(1, "GMAIL_CLIENT_ID est requis"),
   GMAIL_CLIENT_SECRET: z.string().min(1, "GMAIL_CLIENT_SECRET est requis"),
   GMAIL_REFRESH_TOKEN: z.string().min(1, "GMAIL_REFRESH_TOKEN est requis"),
@@ -60,6 +60,15 @@ const envSchema = z.object({
     .email("ADMIN_EMAIL doit être une adresse email valide")
     .default("p.abodecabinet@gmail.com"),
   ADMIN_PASSWORD: z.string().optional(),
+
+  /* --- Création du premier administrateur (optionnel) ---
+     Requis pour activer POST /api/auth/create-admin.
+     Une fois le premier admin créé, cette route se verrouille
+     automatiquement. */
+  ADMIN_CREATION_SECRET: z
+    .string()
+    .min(16, "ADMIN_CREATION_SECRET doit contenir au moins 16 caractères")
+    .optional(),
 });
 
 /* ============================================================
@@ -69,7 +78,7 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   const errors = parsed.error.flatten().fieldErrors;
-  console.error("❌ Variables d'environnement invalides :");
+  console.error("Variables d'environnement invalides :");
   console.error(JSON.stringify(errors, null, 2));
   console.error("");
   console.error("Vérifiez les variables suivantes :");

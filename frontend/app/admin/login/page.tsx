@@ -1,94 +1,203 @@
+// app/admin/login/page.tsx
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2, LogIn } from "lucide-react";
-import Image from "next/image";
-import { toast } from "sonner";
-import { useAuth } from "@/lib/useAuth";
 
-const schema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Au moins 6 caractères"),
-});
-type FormData = z.infer<typeof schema>;
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { AlertCircle, Loader2, LogIn } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const { login } = useAuth();
+export default function AdminLoginPage() {
+  /* skipRedirect: true est déjà implicite sur cette page, mais on le
+     passe explicitement pour la lisibilité et la robustesse. */
+  const { login, error: authError, loading } = useAuth({ skipRedirect: true });
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  const isBusy = loading || submitting;
+  const canSubmit = Boolean(email) && Boolean(password) && !isBusy;
 
-  async function onSubmit(data: FormData) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting) return; // anti double-soumission
+
     setSubmitting(true);
     try {
-      await login(data.email, data.password);
-      toast.success("Connexion réussie");
-      router.replace("/admin");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Identifiants incorrects";
-      toast.error(msg);
+      await login(email.trim(), password);
+      // Redirection gérée par useAuth (router.push("/admin"))
+    } catch {
+      // L'erreur est déjà disponible dans `authError`
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-navy-deep flex items-center justify-center px-5">
-      <div className="w-full max-w-md bg-white rounded-card shadow-soft p-8 lg:p-10">
-        <div className="text-center mb-8">
-          <Image
-            src="/images/logo.png"
-            alt="CAMPAB"
-            width={72}
-            height={72}
-            className="mx-auto h-16 w-auto"
-          />
-          <h1 className="font-serif text-2xl text-navy-deep mt-5">
-            Espace administration
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg-alt)",
+        padding: "24px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "420px",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-xl)",
+          padding: "40px 32px",
+          boxShadow: "var(--shadow-lg)",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "28px",
+              fontWeight: 700,
+              color: "var(--navy)",
+              marginBottom: "8px",
+            }}
+          >
+            CAMPAB
           </h1>
-          <p className="text-sm text-ink-soft mt-2">Cabinet CAMPAB · Cotonou</p>
+          <p style={{ fontSize: "14px", color: "var(--text-500)" }}>
+            Espace d&apos;administration
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-ink mb-2">Email</label>
+        <form onSubmit={handleSubmit} noValidate>
+          <div style={{ marginBottom: "20px" }}>
+            <label
+              htmlFor="email"
+              style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--text-500)",
+                marginBottom: "8px",
+              }}
+            >
+              Email
+            </label>
             <input
-              {...register("email")}
+              id="email"
               type="email"
               autoComplete="email"
-              className="w-full px-4 py-3 rounded-md border border-line focus:border-olive focus:ring-2 focus:ring-olive/20 outline-none transition"
-              placeholder="vous@cam-pab.com"
+              inputMode="email"
+              autoFocus
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="p.abodecabinet@gmail.com"
+              className="form-control"
+              disabled={isBusy}
             />
-            {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-ink mb-2">Mot de passe</label>
+          <div style={{ marginBottom: "24px" }}>
+            <label
+              htmlFor="password"
+              style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--text-500)",
+                marginBottom: "8px",
+              }}
+            >
+              Mot de passe
+            </label>
             <input
-              {...register("password")}
+              id="password"
               type="password"
               autoComplete="current-password"
-              className="w-full px-4 py-3 rounded-md border border-line focus:border-olive focus:ring-2 focus:ring-olive/20 outline-none transition"
-              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="form-control"
+              disabled={isBusy}
             />
-            {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
           </div>
+
+          {authError && (
+            <div
+              role="alert"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "10px",
+                padding: "12px 16px",
+                background: "#FEF2F2",
+                border: "1px solid #FCA5A5",
+                borderRadius: "var(--r-md)",
+                color: "#991B1B",
+                fontSize: "13px",
+                marginBottom: "20px",
+              }}
+            >
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: "1px" }} />
+              <span>{authError}</span>
+            </div>
+          )}
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full inline-flex items-center justify-center gap-2 bg-navy-deep text-white py-3 rounded-full font-medium hover:bg-olive transition-colors disabled:opacity-60"
+            disabled={!canSubmit}
+            className="btn btn--primary btn--lg"
+            style={{ width: "100%", justifyContent: "center" }}
           >
-            {submitting ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-            {submitting ? "Connexion..." : "Se connecter"}
+            {isBusy ? (
+              <>
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                <span>Connexion...</span>
+              </>
+            ) : (
+              <>
+                <LogIn size={16} aria-hidden="true" />
+                <span>Se connecter</span>
+              </>
+            )}
           </button>
         </form>
+
+        <div
+          style={{
+            marginTop: "24px",
+            textAlign: "center",
+            fontSize: "12px",
+            color: "var(--text-300)",
+          }}
+        >
+          <Link
+            href="/"
+            style={{ color: "var(--olive)", textDecoration: "none" }}
+          >
+            Retour au site public
+          </Link>
+        </div>
+
+        <p
+          style={{
+            marginTop: "16px",
+            textAlign: "center",
+            fontSize: "11px",
+            color: "var(--text-300)",
+            lineHeight: 1.5,
+          }}
+        >
+          Accès protégé. Toute tentative de connexion est limitée en débit.
+        </p>
       </div>
     </div>
   );

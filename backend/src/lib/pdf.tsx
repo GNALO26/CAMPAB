@@ -1,362 +1,76 @@
-﻿// backend/src/lib/pdf.tsx
+﻿// backend/src/lib/pdf.ts
 import fs from "node:fs/promises";
 import path from "node:path";
-import React from "react";
-import {
-  Document,
-  Image,
-  Page,
-  StyleSheet,
-  Text,
-  View,
-  renderToBuffer,
-} from "@react-pdf/renderer";
+import PDFDocument from "pdfkit";
 
 /* ============================================================
-   Palette de couleurs
+   Palette
    ============================================================ */
-const C = {
+const COLORS = {
   navy: "#0B2942",
   navyDeep: "#071A2C",
   navyMid: "#123F5E",
-  gold: "#B8860B",
-  goldLight: "#D4A017",
   olive: "#5A8F32",
   border: "#D8E0E4",
-  borderLight: "#E8EEF2",
   surface: "#F8FAF9",
-  surfaceAlt: "#F0F5F9",
+  surfaceAlt: "#F1F5F9",
   text: "#17212B",
   muted: "#5D6872",
   subtle: "#8B959F",
   white: "#FFFFFF",
+  infoBg: "#F0F7F0",
+  infoBorder: "#CFE3CF",
 };
 
 /* ============================================================
-   Styles
+   Cache du logo
+   undefined = jamais tenté
+   null      = tenté et échoué
+   Buffer    = chargé
    ============================================================ */
-const s = StyleSheet.create({
-  page: {
-    paddingTop: 30,
-    paddingBottom: 80,
-    paddingHorizontal: 40,
-    fontFamily: "Helvetica",
-    fontSize: 10,
-    color: C.text,
-    backgroundColor: C.white,
-    lineHeight: 1.5,
-  },
+let cachedLogoBuffer: Buffer | null | undefined = undefined;
 
-  /* --- En-tête avec deux logos --- */
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingBottom: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: C.navy,
-    marginBottom: 20,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    objectFit: "contain",
-  },
-  logoFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: C.navy,
-    color: C.white,
-    textAlign: "center",
-    paddingTop: 16,
-    fontFamily: "Helvetica-Bold",
-    fontSize: 11,
-  },
-  headerTextLeft: {
-    flexDirection: "column",
-  },
-  headerTextRight: {
-    flexDirection: "column",
-    alignItems: "flex-end",
-  },
-  headerTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 14,
-    color: C.navy,
-    letterSpacing: 0.8,
-  },
-  headerSubtitle: {
-    fontSize: 7.5,
-    color: C.muted,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    marginTop: 2,
-  },
-  headerContact: {
-    fontSize: 7.5,
-    color: C.muted,
-    textAlign: "right",
-    marginBottom: 1,
-  },
+async function getLogoBuffer(): Promise<Buffer | null> {
+  if (cachedLogoBuffer !== undefined) return cachedLogoBuffer;
 
-  /* --- Titre du document --- */
-  docTitleBlock: {
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  docTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 20,
-    color: C.navyDeep,
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
-  docSubtitle: {
-    fontSize: 9,
-    color: C.muted,
-    marginTop: 4,
-    textAlign: "center",
-  },
+  const candidates = [
+    path.join(process.cwd(), "public", "logo.png"),
+    path.join(process.cwd(), "assets", "logo.png"),
+    path.join(process.cwd(), "..", "frontend", "public", "logo.png"),
+    path.join(process.cwd(), "uploads", "logo.png"),
+  ];
 
-  /* --- Bandeau de référence --- */
-  refBanner: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: C.navy,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    marginBottom: 18,
-  },
-  refBannerLabel: {
-    fontSize: 8,
-    color: "rgba(255,255,255,0.7)",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-  },
-  refBannerValue: {
-    fontSize: 14,
-    fontFamily: "Helvetica-Bold",
-    color: C.white,
-    letterSpacing: 0.8,
-  },
-  refBannerStatus: {
-    fontSize: 8,
-    color: C.goldLight,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    fontFamily: "Helvetica-Bold",
-  },
-
-  /* --- Tableaux --- */
-  section: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sectionHeaderLine: {
-    width: 4,
-    height: 16,
-    backgroundColor: C.gold,
-    borderRadius: 2,
-    marginRight: 8,
-  },
-  sectionTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 11,
-    color: C.navyDeep,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-
-  table: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-  tableHeaderRow: {
-    flexDirection: "row",
-    backgroundColor: C.navy,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  tableHeaderCell: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8.5,
-    color: C.white,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  tableRow: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.borderLight,
-  },
-  tableRowAlt: {
-    backgroundColor: C.surfaceAlt,
-  },
-  tableRowLast: {
-    borderBottomWidth: 0,
-  },
-  tableLabelCell: {
-    width: "40%",
-    fontSize: 9.5,
-    color: C.muted,
-    fontFamily: "Helvetica-Bold",
-  },
-  tableValueCell: {
-    width: "60%",
-    fontSize: 9.5,
-    color: C.text,
-  },
-
-  /* --- Description --- */
-  descriptionBox: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 6,
-    padding: 12,
-    backgroundColor: C.surface,
-    borderLeftWidth: 3,
-    borderLeftColor: C.olive,
-  },
-  descriptionText: {
-    fontSize: 9.5,
-    color: C.text,
-    lineHeight: 1.6,
-  },
-
-  /* --- Bloc signature / cachet --- */
-  signatureBlock: {
-    marginTop: 24,
-    flexDirection: "row",
-    gap: 16,
-  },
-  signatureBox: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderStyle: "dashed",
-    borderRadius: 6,
-    padding: 12,
-    minHeight: 100,
-    backgroundColor: C.white,
-  },
-  signatureBoxTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 9,
-    color: C.navy,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    marginBottom: 6,
-    textAlign: "center",
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: C.borderLight,
-  },
-  signatureBoxHint: {
-    fontSize: 7.5,
-    color: C.subtle,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  signatureBoxContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /* --- Notice informative --- */
-  notice: {
-    marginTop: 16,
-    backgroundColor: "#F0F7F0",
-    borderWidth: 1,
-    borderColor: "#CFE3CF",
-    borderRadius: 6,
-    padding: 12,
-  },
-  noticeTitle: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 9,
-    color: C.olive,
-    marginBottom: 6,
-  },
-  noticeLine: {
-    flexDirection: "row",
-    marginBottom: 3,
-  },
-  noticeBullet: {
-    width: 10,
-    fontSize: 9,
-    color: C.olive,
-  },
-  noticeContent: {
-    flex: 1,
-    fontSize: 9,
-    color: C.text,
-  },
-
-  /* --- Pied de page --- */
-  footer: {
-    position: "absolute",
-    bottom: 30,
-    left: 40,
-    right: 40,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  footerCol: {
-    fontSize: 7.5,
-    color: C.subtle,
-  },
-  footerColStrong: {
-    fontSize: 7.5,
-    color: C.muted,
-    fontFamily: "Helvetica-Bold",
-  },
-});
-
-/* ============================================================
-   Chargement du logo
-   ============================================================ */
-async function getLogoDataUrl(): Promise<string | null> {
-  try {
-    const logoPath = path.join(process.cwd(), "public", "logo.png");
-    const buffer = await fs.readFile(logoPath);
-    return `data:image/png;base64,${buffer.toString("base64")}`;
-  } catch {
-    return null;
+  for (const filePath of candidates) {
+    try {
+      const buf = await fs.readFile(filePath);
+      cachedLogoBuffer = buf;
+      console.log(`[pdf] Logo chargé depuis ${filePath}`);
+      return buf;
+    } catch {
+      // tentative suivante
+    }
   }
+
+  console.warn("[pdf] Logo introuvable, PDF généré sans logo.");
+  cachedLogoBuffer = null;
+  return null;
 }
 
 /* ============================================================
-   Interface des données du PDF
+   Types publics
    ============================================================ */
+export interface PdfRow {
+  label: string;
+  value: string;
+}
+
+export interface PdfData {
+  title: string;
+  subtitle?: string;
+  rows: PdfRow[];
+  footer?: string;
+}
+
 export interface AppointmentPdfData {
   reference: string;
   typeService: string;
@@ -368,13 +82,14 @@ export interface AppointmentPdfData {
   phone: string;
   organisation?: string | null;
   country: string;
-  preferredDate?: string | null;
+  preferredDate?: string | Date | null;
   preferredTime?: string | null;
   createdAt: Date | string;
+  status?: string;
 }
 
 /* ============================================================
-   Helpers de formatage
+   Labels et formats
    ============================================================ */
 const SERVICE_LABELS: Record<string, string> = {
   consultation: "Consultation juridique",
@@ -388,17 +103,25 @@ const URGENCE_LABELS: Record<string, string> = {
   critique: "Critique",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "En attente de confirmation",
+  confirmed: "Confirmé",
+  cancelled: "Annulé",
+  done: "Terminé",
+};
+
 function labelOf(
-  list: Record<string, string>,
-  value: string | undefined
+  map: Record<string, string>,
+  value: string | undefined | null,
+  fallback = "Non précisé",
 ): string {
-  if (!value) return "Non précisé";
-  return list[value] ?? value;
+  if (!value) return fallback;
+  return map[value] ?? value;
 }
 
-function formatDateLong(value?: string | null): string {
+function formatDateLong(value: string | Date | null | undefined): string {
   if (!value) return "Non précisée";
-  const d = new Date(value);
+  const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "Non précisée";
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
@@ -413,274 +136,566 @@ function formatDateTime(value: string | Date): string {
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
-    month: "long",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   }).format(d);
 }
 
-/* ============================================================
-   Ligne de tableau
-   ============================================================ */
-function TableRow({
-  label,
-  value,
-  alt = false,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  alt?: boolean;
-  last?: boolean;
-}) {
-  const rowStyle = [
-    s.tableRow,
-    alt ? s.tableRowAlt : {},
-    last ? s.tableRowLast : {},
-  ];
-  return (
-    <View style={rowStyle}>
-      <Text style={s.tableLabelCell}>{label}</Text>
-      <Text style={s.tableValueCell}>{value}</Text>
-    </View>
-  );
+/**
+ * Tronque une chaîne pour qu'elle tienne dans maxWidth à la police
+ * et à la taille actuellement définies sur le document PDFKit.
+ */
+function ellipsize(
+  doc: PDFKit.PDFDocument,
+  text: string,
+  maxWidth: number,
+): string {
+  if (!text) return "";
+  if (doc.widthOfString(text) <= maxWidth) return text;
+  const ell = "…";
+  let cut = text;
+  while (cut.length > 1) {
+    cut = cut.slice(0, -1);
+    if (doc.widthOfString(cut + ell) <= maxWidth) return cut + ell;
+  }
+  return ell;
 }
 
 /* ============================================================
-   Document PDF
+   PDF générique (conservé pour compatibilité)
    ============================================================ */
-function AppointmentDocument({
-  data,
-  logo,
-}: {
-  data: AppointmentPdfData;
-  logo: string | null;
-}) {
-  const fullName = `${data.firstName} ${data.lastName}`.trim();
-  const serviceLabel = labelOf(SERVICE_LABELS, data.typeService);
-  const urgenceLabel = labelOf(URGENCE_LABELS, data.urgence);
+export function generatePdf(data: PdfData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        margin: 40,
+        info: {
+          Title: data.title,
+          Author: "Cabinet CAMPAB",
+          Subject: data.subtitle ?? "",
+          Creator: "CAMPAB",
+        },
+      });
 
-  return (
-    <Document
-      title={`Confirmation de rendez-vous ${data.reference}`}
-      author="Cabinet CAMPAB"
-      subject="Confirmation de demande de rendez-vous"
-      creator="CAMPAB"
-      producer="CAMPAB"
-    >
-      <Page size="A4" style={s.page}>
-        {/* ============================================
-            EN-TÊTE : deux logos (gauche et droite)
-            ============================================ */}
-        <View style={s.header}>
-          {/* Logo gauche : CAMPAB */}
-          <View style={s.headerLeft}>
-            {logo ? (
-              <Image src={logo} style={s.logo} />
-            ) : (
-              <Text style={s.logoFallback}>CAMPAB</Text>
-            )}
-            <View style={s.headerTextLeft}>
-              <Text style={s.headerTitle}>CAMPAB</Text>
-              <Text style={s.headerSubtitle}>Cabinet d'Arbitrage et de Médiation</Text>
-            </View>
-          </View>
+      const chunks: Buffer[] = [];
+      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
 
-          {/* Logo droite : informations de contact */}
-          <View style={s.headerRight}>
-            <View style={s.headerTextRight}>
-              <Text style={s.headerContact}>Cotonou, Bénin</Text>
-              <Text style={s.headerContact}>01 97 76 29 36</Text>
-              <Text style={s.headerContact}>p.abodecabinet@gmail.com</Text>
-              <Text style={s.headerContact}>cam-pab.com</Text>
-            </View>
-            {logo ? (
-              <Image src={logo} style={s.logo} />
-            ) : (
-              <Text style={s.logoFallback}>C</Text>
-            )}
-          </View>
-        </View>
+      doc
+        .fillColor(COLORS.navy)
+        .fontSize(20)
+        .font("Helvetica-Bold")
+        .text("CAMPAB", { align: "center" });
 
-        {/* ============================================
-            TITRE DU DOCUMENT
-            ============================================ */}
-        <View style={s.docTitleBlock}>
-          <Text style={s.docTitle}>CONFIRMATION DE RENDEZ-VOUS</Text>
-          <Text style={s.docSubtitle}>
-            Document généré le {formatDateTime(data.createdAt)}
-          </Text>
-        </View>
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(10)
+        .font("Helvetica")
+        .text("Cabinet d'Arbitrage et de Médiation", { align: "center" })
+        .text("Cotonou, Bénin", { align: "center" })
+        .moveDown(2);
 
-        {/* ============================================
-            BANDEAU RÉFÉRENCE
-            ============================================ */}
-        <View style={s.refBanner}>
-          <View>
-            <Text style={s.refBannerLabel}>Référence du dossier</Text>
-            <Text style={s.refBannerValue}>{data.reference}</Text>
-          </View>
-          <View>
-            <Text style={s.refBannerLabel}>Statut</Text>
-            <Text style={s.refBannerStatus}>En attente de confirmation</Text>
-          </View>
-        </View>
+      doc
+        .fillColor(COLORS.navyDeep)
+        .fontSize(18)
+        .font("Helvetica-Bold")
+        .text(data.title, { align: "left" })
+        .moveDown(1);
 
-        {/* ============================================
-            SECTION : VOS COORDONNÉES
-            ============================================ */}
-        <View style={s.section}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderLine} />
-            <Text style={s.sectionTitle}>Vos coordonnées</Text>
-          </View>
-          <View style={s.table}>
-            <View style={s.tableHeaderRow}>
-              <Text style={[s.tableHeaderCell, { width: "40%" }]}>Champ</Text>
-              <Text style={[s.tableHeaderCell, { width: "60%" }]}>Information</Text>
-            </View>
-            <TableRow label="Nom complet" value={fullName} />
-            <TableRow label="Email" value={data.email} alt />
-            <TableRow label="Téléphone" value={data.phone} />
-            {data.organisation ? (
-              <TableRow
-                label="Organisation"
-                value={data.organisation}
-                alt
-              />
-            ) : null}
-            <TableRow label="Pays" value={data.country} last={!data.organisation} />
-          </View>
-        </View>
+      if (data.subtitle) {
+        doc
+          .fillColor(COLORS.muted)
+          .fontSize(11)
+          .font("Helvetica")
+          .text(data.subtitle)
+          .moveDown(1.5);
+      }
 
-        {/* ============================================
-            SECTION : DÉTAILS DU RENDEZ-VOUS
-            ============================================ */}
-        <View style={s.section}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderLine} />
-            <Text style={s.sectionTitle}>Détails du rendez-vous</Text>
-          </View>
-          <View style={s.table}>
-            <View style={s.tableHeaderRow}>
-              <Text style={[s.tableHeaderCell, { width: "40%" }]}>Champ</Text>
-              <Text style={[s.tableHeaderCell, { width: "60%" }]}>Information</Text>
-            </View>
-            <TableRow label="Nature de la demande" value={serviceLabel} />
-            <TableRow label="Niveau d'urgence" value={urgenceLabel} alt />
-            <TableRow
-              label="Date souhaitée"
-              value={formatDateLong(data.preferredDate)}
-            />
-            <TableRow
-              label="Heure souhaitée"
-              value={data.preferredTime || "À définir avec le cabinet"}
-              alt
-              last
-            />
-          </View>
-        </View>
+      data.rows.forEach((row) => {
+        const y = doc.y;
+        doc
+          .fillColor(COLORS.muted)
+          .fontSize(10)
+          .font("Helvetica")
+          .text(row.label, 40, y, { width: 140 });
 
-        {/* ============================================
-            SECTION : DESCRIPTION DE LA SITUATION
-            ============================================ */}
-        <View style={s.section}>
-          <View style={s.sectionHeader}>
-            <View style={s.sectionHeaderLine} />
-            <Text style={s.sectionTitle}>Description de la situation</Text>
-          </View>
-          <View style={s.descriptionBox}>
-            <Text style={s.descriptionText}>{data.description}</Text>
-          </View>
-        </View>
+        doc
+          .fillColor(COLORS.text)
+          .font("Helvetica-Bold")
+          .text(row.value, 190, y, { width: 350 });
 
-        {/* ============================================
-            SECTION : CACHET ET SIGNATURE
-            ============================================ */}
-        <View style={s.signatureBlock}>
-          {/* Cadre pour signature du client */}
-          <View style={s.signatureBox}>
-            <Text style={s.signatureBoxTitle}>Signature du client</Text>
-            <View style={s.signatureBoxContent}>
-              <Text style={s.signatureBoxHint}>
-                À signer lors de la visite au cabinet
-              </Text>
-            </View>
-          </View>
+        doc.moveDown(0.4);
+      });
 
-          {/* Cadre pour cachet du cabinet */}
-          <View style={s.signatureBox}>
-            <Text style={s.signatureBoxTitle}>Cachet et signature du cabinet</Text>
-            <View style={s.signatureBoxContent}>
-              <Text style={s.signatureBoxHint}>
-                Réservé à l'administration
-              </Text>
-            </View>
-          </View>
-        </View>
+      if (data.footer) {
+        doc
+          .moveDown(2)
+          .fillColor(COLORS.subtle)
+          .fontSize(9)
+          .font("Helvetica")
+          .text(data.footer, { align: "center" });
+      }
 
-        {/* ============================================
-            NOTICE INFORMATIVE
-            ============================================ */}
-        <View style={s.notice}>
-          <Text style={s.noticeTitle}>Informations pratiques</Text>
-          <View style={s.noticeLine}>
-            <Text style={s.noticeBullet}>•</Text>
-            <Text style={s.noticeContent}>
-              Le cabinet vous recontacte sous 24 à 48 heures ouvrées pour confirmer la date et l'heure définitives.
-            </Text>
-          </View>
-          <View style={s.noticeLine}>
-            <Text style={s.noticeBullet}>•</Text>
-            <Text style={s.noticeContent}>
-              Horaires d'ouverture : lundi à vendredi, de 08h00 à 13h30 et de 15h00 à 20h00. Samedi et dimanche fermés.
-            </Text>
-          </View>
-          <View style={s.noticeLine}>
-            <Text style={s.noticeBullet}>•</Text>
-            <Text style={s.noticeContent}>
-              Pour toute urgence : 01 97 76 29 36 ou p.abodecabinet@gmail.com.
-            </Text>
-          </View>
-          <View style={s.noticeLine}>
-            <Text style={s.noticeBullet}>•</Text>
-            <Text style={s.noticeContent}>
-              Présentez ce document imprimé ou en version numérique lors de votre visite.
-            </Text>
-          </View>
-        </View>
-
-        {/* ============================================
-            PIED DE PAGE
-            ============================================ */}
-        <View style={s.footer} fixed>
-          <Text style={s.footerCol}>cam-pab.com</Text>
-          <Text style={s.footerCol}>
-            Document confidentiel, protégé par le secret professionnel
-          </Text>
-          <Text style={s.footerColStrong}>{data.reference}</Text>
-        </View>
-      </Page>
-    </Document>
-  );
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 /* ============================================================
-   Fonction principale
+   PDF PROFESSIONNEL DE CONFIRMATION DE RENDEZ-VOUS
    ============================================================ */
 export async function generateAppointmentPdf(
-  data: AppointmentPdfData
+  data: AppointmentPdfData,
 ): Promise<Buffer> {
-  const logo = await getLogoDataUrl();
-  return renderToBuffer(
-    <AppointmentDocument data={data} logo={logo} />
-  );
-}
+  const logoBuffer = await getLogoBuffer();
 
-export async function generateAppointmentPdfBase64(
-  data: AppointmentPdfData
-): Promise<string> {
-  const buffer = await generateAppointmentPdf(data);
-  return buffer.toString("base64");
+  return new Promise<Buffer>((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        margin: 40,
+        info: {
+          Title: `Confirmation de rendez-vous ${data.reference}`,
+          Author: "Cabinet CAMPAB",
+          Subject: "Confirmation de rendez-vous",
+          Creator: "CAMPAB",
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on("data", (c: Buffer) => chunks.push(c));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+
+      const pageWidth = doc.page.width; // 595.28 pt
+      const pageHeight = doc.page.height; // 841.89 pt
+      const margin = 40;
+      const contentWidth = pageWidth - margin * 2;
+
+      /* ==========================================================
+         EN-TÊTE (logos gauche et droite, bloc texte centré)
+         ========================================================== */
+      const headerY = margin;
+      const logoSize = 55;
+
+      if (logoBuffer) {
+        doc.image(logoBuffer, margin, headerY, {
+          width: logoSize,
+          height: logoSize,
+        });
+        doc.image(logoBuffer, pageWidth - margin - logoSize, headerY, {
+          width: logoSize,
+          height: logoSize,
+        });
+      }
+
+      doc
+        .fillColor(COLORS.navy)
+        .fontSize(22)
+        .font("Helvetica-Bold")
+        .text("CAMPAB", margin, headerY + 4, {
+          width: contentWidth,
+          align: "center",
+        });
+
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(9)
+        .font("Helvetica")
+        .text("Cabinet d'Arbitrage et de Médiation", margin, headerY + 32, {
+          width: contentWidth,
+          align: "center",
+        })
+        .text("Cotonou, Bénin", margin, headerY + 44, {
+          width: contentWidth,
+          align: "center",
+        });
+
+      const separatorY = headerY + logoSize + 12; // y ≈ 107
+      doc
+        .moveTo(margin, separatorY)
+        .lineTo(pageWidth - margin, separatorY)
+        .strokeColor(COLORS.navy)
+        .lineWidth(2)
+        .stroke();
+
+      /* ==========================================================
+         TITRE + DATE D'ÉMISSION
+         ========================================================== */
+      let cursorY = separatorY + 16;
+      doc
+        .fillColor(COLORS.navyDeep)
+        .fontSize(20)
+        .font("Helvetica-Bold")
+        .text("Confirmation de rendez-vous", margin, cursorY, {
+          width: contentWidth,
+          align: "center",
+        });
+
+      cursorY = doc.y + 6;
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(10)
+        .font("Helvetica")
+        .text(
+          `Document émis le ${formatDateTime(data.createdAt)}`,
+          margin,
+          cursorY,
+          { width: contentWidth, align: "center" },
+        );
+
+      cursorY = doc.y + 14;
+
+      /* ==========================================================
+         ENCADRÉ RÉFÉRENCE
+         ========================================================== */
+      const refBoxHeight = 48;
+      doc
+        .rect(margin, cursorY, contentWidth, refBoxHeight)
+        .fillColor(COLORS.surface)
+        .fill();
+      doc.rect(margin, cursorY, 4, refBoxHeight).fillColor(COLORS.olive).fill();
+
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(9)
+        .font("Helvetica")
+        .text("RÉFÉRENCE DU DOSSIER", margin + 20, cursorY + 8, {
+          width: contentWidth - 40,
+        });
+
+      doc
+        .fillColor(COLORS.navyDeep)
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .text(data.reference, margin + 20, cursorY + 22, {
+          width: contentWidth - 40,
+        });
+
+      cursorY += refBoxHeight + 14;
+
+      /* ==========================================================
+         TABLEAU 2 COLONNES
+         ========================================================== */
+      const colGap = 15;
+      const colWidth = (contentWidth - colGap) / 2;
+      const colLeftX = margin;
+      const colRightX = margin + colWidth + colGap;
+
+      const rowHeight = 24;
+      const tableHeaderHeight = 28;
+
+      const rowsClient: [string, string][] = [
+        ["Nom complet", `${data.firstName} ${data.lastName}`.trim()],
+        ["Email", data.email],
+        ["Téléphone", data.phone],
+        [
+          "Organisation",
+          data.organisation && data.organisation.trim()
+            ? data.organisation
+            : "Non précisée",
+        ],
+        ["Pays", data.country],
+      ];
+
+      const rowsRdv: [string, string][] = [
+        ["Nature", labelOf(SERVICE_LABELS, data.typeService)],
+        ["Urgence", labelOf(URGENCE_LABELS, data.urgence)],
+        ["Date souhaitée", formatDateLong(data.preferredDate)],
+        ["Heure souhaitée", data.preferredTime || "À définir"],
+        ["Statut", labelOf(STATUS_LABELS, data.status ?? "pending")],
+      ];
+
+      const tableBodyHeight =
+        Math.max(rowsClient.length, rowsRdv.length) * rowHeight;
+      const tableHeight = tableHeaderHeight + tableBodyHeight;
+
+      // Fond blanc des deux colonnes
+      for (const x of [colLeftX, colRightX]) {
+        doc
+          .rect(x, cursorY, colWidth, tableHeight)
+          .fillColor(COLORS.white)
+          .fill();
+      }
+
+      // En-têtes bleu marine
+      for (const x of [colLeftX, colRightX]) {
+        doc
+          .rect(x, cursorY, colWidth, tableHeaderHeight)
+          .fillColor(COLORS.navy)
+          .fill();
+      }
+
+      doc.fillColor(COLORS.white).fontSize(10).font("Helvetica-Bold");
+      doc.text("INFORMATIONS CLIENT", colLeftX + 12, cursorY + 9, {
+        width: colWidth - 24,
+        lineBreak: false,
+      });
+      doc.text("DÉTAILS DU RENDEZ-VOUS", colRightX + 12, cursorY + 9, {
+        width: colWidth - 24,
+        lineBreak: false,
+      });
+
+      const labelX = 12;
+      const labelWidth = 88;
+      const valueX = 102;
+      const valueWidth = colWidth - valueX - 12;
+
+      const renderRows = (x: number, rows: [string, string][]): void => {
+        rows.forEach((row, i) => {
+          const y = cursorY + tableHeaderHeight + i * rowHeight;
+
+          if (i % 2 === 1) {
+            doc
+              .rect(x, y, colWidth, rowHeight)
+              .fillColor(COLORS.surfaceAlt)
+              .fill();
+          }
+
+          doc.fillColor(COLORS.muted).fontSize(9).font("Helvetica");
+          const labelText = ellipsize(doc, row[0], labelWidth);
+          doc.text(labelText, x + labelX, y + 7, {
+            width: labelWidth,
+            lineBreak: false,
+          });
+
+          doc.fillColor(COLORS.text).fontSize(9.5).font("Helvetica-Bold");
+          const valueText = ellipsize(doc, row[1], valueWidth);
+          doc.text(valueText, x + valueX, y + 7, {
+            width: valueWidth,
+            lineBreak: false,
+          });
+        });
+      };
+
+      renderRows(colLeftX, rowsClient);
+      renderRows(colRightX, rowsRdv);
+
+      // Bordures extérieures du tableau
+      for (const x of [colLeftX, colRightX]) {
+        doc
+          .rect(x, cursorY, colWidth, tableHeight)
+          .strokeColor(COLORS.border)
+          .lineWidth(1)
+          .stroke();
+      }
+
+      cursorY += tableHeight + 16;
+
+      /* ==========================================================
+         DESCRIPTION DE LA SITUATION
+         ========================================================== */
+      doc
+        .fillColor(COLORS.navy)
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("DESCRIPTION DE LA SITUATION", margin, cursorY, {
+          width: contentWidth,
+        });
+      cursorY = doc.y + 6;
+
+      const descTextWidth = contentWidth - 30;
+      doc.font("Helvetica").fontSize(10);
+
+      let descriptionText = (data.description ?? "").trim() || "Non précisée.";
+      const MAX_DESC_CONTENT_HEIGHT = 100;
+      let descContentHeight = doc.heightOfString(descriptionText, {
+        width: descTextWidth,
+      });
+
+      if (descContentHeight > MAX_DESC_CONTENT_HEIGHT) {
+        let cut = descriptionText;
+        while (cut.length > 40) {
+          cut = cut.slice(0, -30);
+          if (
+            doc.heightOfString(cut + " […]", { width: descTextWidth }) <=
+            MAX_DESC_CONTENT_HEIGHT
+          ) {
+            break;
+          }
+        }
+        descriptionText = cut + " […]";
+        descContentHeight = doc.heightOfString(descriptionText, {
+          width: descTextWidth,
+        });
+      }
+
+      const descHeight = Math.max(60, descContentHeight + 24);
+
+      doc
+        .rect(margin, cursorY, contentWidth, descHeight)
+        .fillColor(COLORS.surface)
+        .fill();
+      doc
+        .rect(margin, cursorY, 4, descHeight)
+        .fillColor(COLORS.navyMid)
+        .fill();
+
+      doc
+        .fillColor(COLORS.text)
+        .fontSize(10)
+        .font("Helvetica")
+        .text(descriptionText, margin + 18, cursorY + 12, {
+          width: descTextWidth,
+        });
+
+      cursorY += descHeight + 16;
+
+      /* ==========================================================
+         INFORMATIONS PRATIQUES
+         ========================================================== */
+      doc
+        .fillColor(COLORS.navy)
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("INFORMATIONS PRATIQUES", margin, cursorY, {
+          width: contentWidth,
+        });
+      cursorY = doc.y + 6;
+
+      const infos = [
+        "Le cabinet vous recontactera sous 24 à 48 heures ouvrées pour confirmer le rendez-vous.",
+        "Horaires : Lundi à vendredi, 08h00 à 13h30 et 15h00 à 20h00.",
+        "Pour toute urgence : 01 97 76 29 36 ou p.abodecabinet@gmail.com.",
+      ];
+
+      const infoPadTop = 10;
+      const infoLineHeight = 16;
+      const infoHeight = infoPadTop * 2 + infos.length * infoLineHeight;
+
+      doc
+        .rect(margin, cursorY, contentWidth, infoHeight)
+        .fillColor(COLORS.infoBg)
+        .fill()
+        .strokeColor(COLORS.infoBorder)
+        .lineWidth(1)
+        .stroke();
+
+      infos.forEach((info, i) => {
+        const y = cursorY + infoPadTop + i * infoLineHeight;
+        doc
+          .fillColor(COLORS.olive)
+          .fontSize(10)
+          .font("Helvetica-Bold")
+          .text("•", margin + 12, y, { lineBreak: false });
+        doc
+          .fillColor(COLORS.text)
+          .fontSize(9.5)
+          .font("Helvetica")
+          .text(info, margin + 28, y, {
+            width: contentWidth - 46,
+            lineBreak: false,
+          });
+      });
+
+      cursorY += infoHeight + 16;
+
+      /* ==========================================================
+         VALIDATION : SIGNATURE CLIENT + CACHET CABINET
+         ========================================================== */
+      doc
+        .fillColor(COLORS.navy)
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("VALIDATION AU SECRÉTARIAT DU CABINET", margin, cursorY, {
+          width: contentWidth,
+        });
+      cursorY = doc.y + 6;
+
+      const sigHeight = 110;
+      const sigBoxWidth = (contentWidth - colGap) / 2;
+
+      // Encadré gauche : signature client
+      doc
+        .rect(margin, cursorY, sigBoxWidth, sigHeight)
+        .fillColor(COLORS.white)
+        .fill()
+        .strokeColor(COLORS.border)
+        .lineWidth(1)
+        .stroke();
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .text("SIGNATURE DU CLIENT", margin + 12, cursorY + 10, {
+          width: sigBoxWidth - 24,
+        });
+      doc
+        .fillColor(COLORS.subtle)
+        .fontSize(8)
+        .font("Helvetica")
+        .text(
+          "Date et signature précédées de la mention « Lu et approuvé »",
+          margin + 12,
+          cursorY + 26,
+          { width: sigBoxWidth - 24 },
+        );
+
+      // Encadré droit : cachet cabinet
+      const sigRightX = margin + sigBoxWidth + colGap;
+      doc
+        .rect(sigRightX, cursorY, sigBoxWidth, sigHeight)
+        .fillColor(COLORS.white)
+        .fill()
+        .strokeColor(COLORS.border)
+        .lineWidth(1)
+        .stroke();
+      doc
+        .fillColor(COLORS.muted)
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .text("CACHET DU CABINET", sigRightX + 12, cursorY + 10, {
+          width: sigBoxWidth - 24,
+        });
+      doc
+        .fillColor(COLORS.subtle)
+        .fontSize(8)
+        .font("Helvetica")
+        .text("Réservé au secrétariat du cabinet", sigRightX + 12, cursorY + 26, {
+          width: sigBoxWidth - 24,
+        });
+
+      /* ==========================================================
+         PIED DE PAGE
+         ========================================================== */
+      const footerSepY = pageHeight - 55;
+      doc
+        .moveTo(margin, footerSepY)
+        .lineTo(pageWidth - margin, footerSepY)
+        .strokeColor(COLORS.border)
+        .lineWidth(1)
+        .stroke();
+
+      doc
+        .fillColor(COLORS.subtle)
+        .fontSize(8)
+        .font("Helvetica")
+        .text(
+          "CAMPAB — Cotonou, Bénin — 01 97 76 29 36 — p.abodecabinet@gmail.com",
+          margin,
+          footerSepY + 8,
+          { width: contentWidth, align: "center" },
+        );
+
+      doc
+        .fillColor(COLORS.subtle)
+        .fontSize(7)
+        .text(
+          `Document confidentiel, protégé par le secret professionnel. Référence : ${data.reference}`,
+          margin,
+          footerSepY + 22,
+          { width: contentWidth, align: "center" },
+        );
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
