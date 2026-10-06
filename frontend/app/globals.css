@@ -3474,19 +3474,27 @@
   }
 }
 /* ============================================================
-   8. ESPACE ADMIN — masque le chrome du site public
-   Activé par admin/layout.tsx via body[data-admin="true"]
+   8. ESPACE ADMIN
+   Activé par admin/layout.tsx via body[data-admin="true"].
+   - La navbar public reste VISIBLE (position fixe en haut).
+   - Le footer et les widgets flottants sont masqués.
+   - Le padding-top du premier bloc de <main> est neutralisé
+     (déjà géré par l'ancrage sous la navbar).
    ============================================================ */
-body[data-admin="true"] .nav,
-body[data-admin="true"] .mobile-menu,
+
+/* Masque : footer + widgets flottants du site public */
 body[data-admin="true"] .footer,
 body[data-admin="true"] .whatsapp-widget,
-body[data-admin="true"] .back-top {
+body[data-admin="true"] .back-top,
+body[data-admin="true"] .mobile-menu {
   display: none !important;
 }
 
-/* Sur les pages admin, le <main> racine ne doit pas avoir de
-   padding-top (le header masqué ne réserve plus d'espace). */
-body[data-admin="true"] main {
+/* Neutralise le padding-top que globals.css applique au premier
+   bloc de <main> sur le site public (règle :
+   main > section/div:first-child) car l'espace sous la navbar
+   est déjà géré par le position:fixed du layout admin. */
+body[data-admin="true"] main > section:first-child,
+body[data-admin="true"] main > div:first-child {
   padding-top: 0 !important;
 }

@@ -25,7 +25,8 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  /* Pose un marqueur sur <body> pour masquer header/footer publics */
+  /* Marque le <body> pour que globals.css masque le footer public
+     et les widgets flottants (WhatsApp, back-top). */
   useEffect(() => {
     document.body.setAttribute("data-admin", "true");
     return () => {
@@ -57,7 +58,8 @@ function ProtectedAdminLayout({
     return (
       <div
         style={{
-          minHeight: "100vh",
+          minHeight: "calc(100vh - var(--nav-h))",
+          marginTop: "var(--nav-h)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -87,13 +89,17 @@ function ProtectedAdminLayout({
   }
 
   return (
+    /* Ancrage sous la navbar : occupe tout l'espace restant, sans scroll global */
     <div
       style={{
+        position: "fixed",
+        top: "var(--nav-h)",
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: "flex",
-        height: "100vh",
-        width: "100%",
-        overflow: "hidden",
         background: "var(--bg-alt)",
+        zIndex: 1,
       }}
     >
       {/* Sidebar fixe */}
@@ -101,7 +107,7 @@ function ProtectedAdminLayout({
         style={{
           width: "260px",
           flexShrink: 0,
-          height: "100vh",
+          height: "100%",
           background: "var(--navy-deep)",
           color: "var(--on-dark-700)",
           display: "flex",
@@ -161,7 +167,9 @@ function ProtectedAdminLayout({
                   borderRadius: "8px",
                   fontSize: "14px",
                   color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
-                  background: isActive ? "rgba(255,255,255,0.1)" : "transparent",
+                  background: isActive
+                    ? "rgba(255,255,255,0.1)"
+                    : "transparent",
                   textDecoration: "none",
                   transition: "all 0.2s",
                 }}
@@ -215,13 +223,12 @@ function ProtectedAdminLayout({
         </div>
       </aside>
 
-      {/* Zone de contenu (seule à défiler) */}
+      {/* Zone de contenu : seule à défiler */}
       <main
         style={{
           flex: 1,
-          height: "100vh",
+          height: "100%",
           overflowY: "auto",
-          padding: "24px 0",
         }}
       >
         {children}
