@@ -250,7 +250,7 @@ export async function sendContactNotification(contact: any) {
 }
 
 /* ============================================================
-   RENDEZ-VOUS
+   RENDEZ-VOUS — création initiale
    ============================================================ */
 export async function sendAppointmentEmails(appointment: any) {
   console.log("[mailer] Préparation des emails pour le RDV :", appointment.reference);
@@ -268,7 +268,7 @@ export async function sendAppointmentEmails(appointment: any) {
     : "À définir avec le cabinet";
   const timeText = appointment.preferredTime || "À définir avec le cabinet";
 
-  /* Génération du PDF avec la nouvelle interface */
+  /* Génération du PDF */
   let pdfBuffer: Buffer | null = null;
   try {
     pdfBuffer = await generateAppointmentPdf({
@@ -285,6 +285,7 @@ export async function sendAppointmentEmails(appointment: any) {
       preferredDate: appointment.preferredDate || null,
       preferredTime: appointment.preferredTime || null,
       createdAt: appointment.createdAt || new Date(),
+      status: appointment.status,
     });
     if (pdfBuffer) {
       console.log("[mailer] PDF généré, taille :", pdfBuffer.length, "octets");
@@ -368,4 +369,165 @@ export async function sendAppointmentEmails(appointment: any) {
     console.error("[mailer] Échec email admin :", error);
     throw error;
   }
+}
+
+/* ============================================================
+   RENDEZ-VOUS — changement de statut
+   ============================================================ */
+
+/**
+ * Email envoyé au client lorsque le cabinet CONFIRME le rendez-vous.
+ * Le PDF de confirmation est joint en pièce jointe.
+ */
+export async function sendAppointmentConfirmationEmail(
+  appointment: any,
+): Promise<void> {
+  console.log(
+    "[mailer] Email de confirmation pour le RDV :",
+    appointment.reference,
+  );
+
+  const serviceText = getServiceLabel(appointment.typeService);
+  const dateText = appointment.preferredDate
+    ? new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(appointment.preferredDate))
+    : "À définir avec le cabinet";
+  const timeText = appointment.preferredTime || "À définir avec le cabinet";
+
+  /* Génération du PDF de confirmation */
+  let pdfBuffer: Buffer | null = null;
+  try {
+    pdfBuffer = await generateAppointmentPdf({
+      reference: appointment.reference || "N/A",
+      typeService: appointment.typeService || "consultation",
+      urgence: appointment.urgence || "normale",
+      description: appointment.description || "Non précisée",
+      firstName: appointment.firstName,
+      lastName: appointment.lastName,
+      email: appointment.email,
+      phone: appointment.phone,
+      organisation: appointment.organisation || null,
+      country: appointment.country || "Non précisé",
+      preferredDate: appointment.preferredDate || null,
+      preferredTime: appointment.preferredTime || null,
+      createdAt: appointment.createdAt || new Date(),
+      status: appointment.status,
+    });
+    if (pdfBuffer) {
+      console.log(
+        "[mailer] PDF de confirmation généré, taille :",
+        pdfBuffer.length,
+        "octets",
+      );
+    }
+  } catch (error) {
+    console.error("[mailer] Échec génération PDF (confirmation) :", error);
+  }
+
+  const attachments = pdfBuffer
+    ? [
+        {
+          filename: `confirmation-rdv-${appointment.reference || appointment._id}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ]
+    : [];
+
+  await sendMail({
+    to: appointment.email,
+    replyTo: "p.abodecabinet@gmail.com",
+    subject: `Votre rendez-vous est confirmé : ${appointment.reference || "CAMPAB"}`,
+    html: wrapHtml(
+      "Rendez-vous confirmé",
+      `
+      <h1 style="margin:0 0 16px 0;font-size:22px;color:#071A2C;">Votre rendez-vous est confirmé</h1>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${escapeHtml(appointment.firstName)},</p>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">
+        Nous avons le plaisir de vous confirmer votre rendez-vous au cabinet CAMPAB.
+        Vous trouverez en pièce jointe le document récapitulatif.
+      </p>
+      <div style="padding:16px;background:#F0F7F0;border-left:3px solid #5A8F32;border-radius:6px;margin:20px 0;">
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Référence</div>
+        <div style="font-size:18px;color:#071A2C;font-weight:700;margin-bottom:14px;">${escapeHtml(appointment.reference || "N/A")}</div>
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Nature</div>
+        <div style="font-size:13px;color:#17212B;font-weight:600;margin-bottom:14px;">${escapeHtml(serviceText)}</div>
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Date</div>
+        <div style="font-size:13px;color:#17212B;margin-bottom:14px;">${escapeHtml(dateText)}</div>
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Heure</div>
+        <div style="font-size:13px;color:#17212B;">${escapeHtml(timeText)}</div>
+      </div>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">
+        Nous vous remercions de votre confiance et vous prions de bien vouloir
+        vous présenter à l&apos;heure convenue. En cas d&apos;empêchement,
+        merci de prévenir le cabinet dans les meilleurs délais.
+      </p>
+      <p style="margin:24px 0 0 0;font-size:14px;color:#17212B;">Cordialement,<br /><strong>Cabinet CAMPAB</strong></p>
+      `,
+    ),
+    attachments,
+  });
+
+  console.log("[mailer] Email de confirmation envoyé à", appointment.email);
+}
+
+/**
+ * Email envoyé au client lorsque le cabinet ANNule le rendez-vous.
+ * Aucun PDF joint (le document de confirmation est caduc).
+ */
+export async function sendAppointmentCancellationEmail(
+  appointment: any,
+): Promise<void> {
+  console.log(
+    "[mailer] Email d'annulation pour le RDV :",
+    appointment.reference,
+  );
+
+  const serviceText = getServiceLabel(appointment.typeService);
+  const dateText = appointment.preferredDate
+    ? new Intl.DateTimeFormat("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(appointment.preferredDate))
+    : "À définir avec le cabinet";
+
+  await sendMail({
+    to: appointment.email,
+    replyTo: "p.abodecabinet@gmail.com",
+    subject: `Annulation de votre rendez-vous : ${appointment.reference || "CAMPAB"}`,
+    html: wrapHtml(
+      "Rendez-vous annulé",
+      `
+      <h1 style="margin:0 0 16px 0;font-size:22px;color:#071A2C;">Votre rendez-vous a été annulé</h1>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">Bonjour ${escapeHtml(appointment.firstName)},</p>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">
+        Nous vous informons que votre rendez-vous au cabinet CAMPAB a été annulé.
+        Nous vous prions de bien vouloir nous excuser pour la gêne occasionnée.
+      </p>
+      <div style="padding:16px;background:#F8FAF9;border-left:3px solid #5D6872;border-radius:6px;margin:20px 0;">
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Référence</div>
+        <div style="font-size:18px;color:#071A2C;font-weight:700;margin-bottom:14px;">${escapeHtml(appointment.reference || "N/A")}</div>
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Nature</div>
+        <div style="font-size:13px;color:#17212B;font-weight:600;margin-bottom:14px;">${escapeHtml(serviceText)}</div>
+        <div style="font-size:11px;color:#5D6872;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Date initialement prévue</div>
+        <div style="font-size:13px;color:#17212B;">${escapeHtml(dateText)}</div>
+      </div>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#17212B;line-height:1.7;">
+        Pour convenir d&apos;une nouvelle date, vous pouvez répondre directement
+        à cet email, nous appeler au <strong>01 97 76 29 36</strong> ou nous
+        écrire à
+        <a href="mailto:p.abodecabinet@gmail.com" style="color:#5A8F32;text-decoration:none;">p.abodecabinet@gmail.com</a>.
+      </p>
+      <p style="margin:24px 0 0 0;font-size:14px;color:#17212B;">Cordialement,<br /><strong>Cabinet CAMPAB</strong></p>
+      `,
+    ),
+  });
+
+  console.log("[mailer] Email d'annulation envoyé à", appointment.email);
 }

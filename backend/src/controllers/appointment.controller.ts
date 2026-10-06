@@ -1,7 +1,11 @@
 ﻿// backend/src/controllers/appointment.controller.ts
 import { Request, Response, NextFunction } from "express";
 import Appointment from "../models/Appointment.js";
-import { sendAppointmentEmails } from "../lib/mailer.js";
+import {
+  sendAppointmentEmails,
+  sendAppointmentConfirmationEmail,
+  sendAppointmentCancellationEmail,
+} from "../lib/mailer.js";
 import { generateAppointmentReference } from "../lib/reference.js";
 import {
   generateDailySlots,
@@ -52,10 +56,8 @@ export async function getAvailableSlots(
       return;
     }
 
-    // Créneaux théoriques de la journée
     const allSlots = generateDailySlots(targetDate);
 
-    // Récupération des rendez-vous existants à cette date
     const dayStart = new Date(targetDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(targetDate);
@@ -74,7 +76,6 @@ export async function getAvailableSlots(
         (t: any): t is string => typeof t === "string" && t.length > 0
       );
 
-    // Filtrage des créneaux disponibles
     const availableSlots = filterAvailableSlots(
       allSlots,
       existingTimes.map((t) => ({ time: t }))
@@ -105,7 +106,6 @@ export async function createAppointment(
   try {
     const { preferredDate, preferredTime, ...rest } = req.body;
 
-    // Validation du créneau si une date est fournie
     if (preferredDate && preferredTime) {
       const targetDate = new Date(`${preferredDate}T00:00:00`);
 
@@ -130,7 +130,6 @@ export async function createAppointment(
         return;
       }
 
-      // Récupération des rendez-vous existants ce jour-là
       const dayStart = new Date(targetDate);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(targetDate);
@@ -163,10 +162,8 @@ export async function createAppointment(
       }
     }
 
-    // Génération d'une référence unique
     const reference = await generateAppointmentReference();
 
-    // Création du rendez-vous
     const appointment = await Appointment.create({
       ...rest,
       preferredDate: preferredDate
@@ -176,7 +173,7 @@ export async function createAppointment(
       reference,
     });
 
-    // Envoi des emails en arrière-plan (non bloquant)
+    /* Envoi des emails en arrière-plan (non bloquant) */
     sendAppointmentEmails(appointment).catch(console.error);
 
     res.status(201).json({
@@ -214,7 +211,12 @@ export async function listAppointments(
 
 /**
  * PATCH /api/appointments/:id/status
- * Met à jour le statut d'un rendez-vous.
+ * Met à jour le statut d'un rendez-vous et notifie le client
+ * par email selon la transition.
+ *
+ * Transitions qui déclenchent un email :
+ *  - pending -> confirmed : email « rendez-vous confirmé » (avec PDF)
+ *  - *       -> cancelled : email « rendez-vous annulé »
  */
 export async function updateAppointmentStatus(
   req: Request,
@@ -222,16 +224,51 @@ export async function updateAppointmentStatus(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { status } = req.body;
-    const appointment = await Appointment.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    if (!appointment) {
-      res.status(404).json({ error: "Rendez-vous introuvable" });
+    const { status } = (req.body ?? {}) as { status?: unknown };
+
+    const ALLOWED = ["pending", "confirmed", "cancelled", "done"] as const;
+    type AllowedStatus = (typeof ALLOWED)[number];
+
+    if (
+      typeof status !== "string" ||
+      !ALLOWED.includes(status as AllowedStatus)
+    ) {
+      res.status(400).json({ error: "Statut invalide." });
       return;
     }
+
+    const newStatus = status as AllowedStatus;
+
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      res.status(404).json({ error: "Rendez-vous introuvable." });
+      return;
+    }
+
+    const previousStatus = appointment.status;
+
+    /* Aucun changement : on renvoie tel quel, sans email */
+    if (previousStatus === newStatus) {
+      res.json(appointment);
+      return;
+    }
+
+    appointment.status = newStatus;
+    await appointment.save();
+
+    /* Notification email en arrière-plan (non bloquant) */
+    const snapshot = appointment.toObject();
+
+    if (newStatus === "confirmed" && previousStatus === "pending") {
+      sendAppointmentConfirmationEmail(snapshot).catch((err) =>
+        console.error("[appointment] Échec email confirmation :", err)
+      );
+    } else if (newStatus === "cancelled" && previousStatus !== "cancelled") {
+      sendAppointmentCancellationEmail(snapshot).catch((err) =>
+        console.error("[appointment] Échec email annulation :", err)
+      );
+    }
+
     res.json(appointment);
     return;
   } catch (error) {
@@ -275,7 +312,7 @@ export async function downloadAppointmentPDF(
       return;
     }
 
-    // Import dynamique : le module PDF n'est chargé qu'à la demande.
+    /* Import dynamique : le module PDF n'est chargé qu'à la demande. */
     const { generateAppointmentPdf } = await import("../lib/pdf.js");
 
     const buffer = await generateAppointmentPdf({
@@ -297,6 +334,7 @@ export async function downloadAppointmentPDF(
         : null,
       preferredTime: appointment.preferredTime ?? null,
       createdAt: appointment.createdAt ?? new Date(),
+      status: appointment.status,
     });
 
     res.setHeader("Content-Type", "application/pdf");
