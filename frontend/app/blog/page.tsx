@@ -38,6 +38,12 @@ const EMPTY: Paginated<ArticleListItem> = {
   pagination: { page: 1, limit: 9, total: 0, totalPages: 0 },
 }
 
+/* ============================================================
+   Récupération des articles
+   Tolère DEUX formes de réponse du backend :
+     - un tableau brut : [article, ...]
+     - un objet paginé : { items: [...], pagination: {...} }
+   ============================================================ */
 async function getArticles(
   category?: string,
   page = 1,
@@ -51,8 +57,35 @@ async function getArticles(
     const url = `${API_URL}/articles?${params.toString()}`
     const res = await fetch(url, { next: { revalidate: 60 } })
     if (!res.ok) return EMPTY
-    const data = (await res.json()) as Paginated<ArticleListItem>
-    return data
+
+    const raw: unknown = await res.json()
+
+    /* Cas 1 : tableau brut renvoyé par le backend actuel */
+    if (Array.isArray(raw)) {
+      const items = raw as ArticleListItem[]
+      return {
+        items,
+        pagination: {
+          page,
+          limit: 9,
+          total: items.length,
+          totalPages: items.length > 9 ? Math.ceil(items.length / 9) : 1,
+        },
+      }
+    }
+
+    /* Cas 2 : objet paginé déjà structuré */
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'items' in raw &&
+      Array.isArray((raw as { items: unknown }).items)
+    ) {
+      return raw as Paginated<ArticleListItem>
+    }
+
+    /* Forme inconnue : on retourne un état vide propre */
+    return EMPTY
   } catch (error) {
     console.error('[blog] Échec fetch articles :', error)
     return EMPTY
@@ -68,7 +101,10 @@ export default async function BlogPage({ searchParams }: Props) {
   const category = (sp.category ?? '') as ArticleCategory | ''
   const page = Math.max(1, Number(sp.page) || 1)
 
-  const { items, pagination } = await getArticles(category || undefined, page)
+  const { items, pagination } = await getArticles(
+    category || undefined,
+    page,
+  )
 
   return (
     <>
@@ -126,12 +162,10 @@ export default async function BlogPage({ searchParams }: Props) {
 
           {items.length === 0 ? (
             <div className="empty-state">
-              <p className="empty-state__title">
-                Aucun article pour le moment
-              </p>
+              <p className="empty-state__title">Aucun article pour le moment</p>
               <p className="empty-state__desc">
-                De nouvelles publications paraîtront très prochainement.
-                Revenez nous rendre visite ou abonnez-vous à notre newsletter.
+                De nouvelles publications paraîtront très prochainement. Revenez
+                nous rendre visite ou abonnez-vous à notre newsletter.
               </p>
             </div>
           ) : (
