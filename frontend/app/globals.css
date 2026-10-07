@@ -3210,15 +3210,58 @@
     --nav-h: 68px;
   }
 
+  /* ----------------------------------------------------------
+     Hero — la photo reste visible sous le texte
+     ---------------------------------------------------------- */
   .page-hero {
     grid-template-columns: 1fr;
     padding: calc(var(--nav-h) + var(--sp-6)) 0 var(--sp-10);
-    min-height: 80vh;
+    min-height: auto;
+    row-gap: var(--sp-10);
+    align-items: start;
   }
-  .page-hero__content { padding-left: var(--gutter); }
-  .page-hero__visual { display: none; }
+
+  .page-hero__content {
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+    order: 1;
+  }
+
+  .page-hero__visual {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-left: 0;
+    padding-right: 0;
+    order: 2;
+    width: 100%;
+  }
+
   .page-hero__video { display: none; }
 
+  .photo-frame {
+    width: min(360px, 82vw);
+  }
+
+  .photo-frame__img {
+    height: auto;
+    aspect-ratio: 5 / 7;
+    max-height: 460px;
+  }
+
+  .photo-card--status {
+    left: var(--sp-3);
+    bottom: var(--sp-5);
+  }
+
+  .photo-card--exp {
+    right: var(--sp-3);
+    top: var(--sp-5);
+  }
+
+  /* ----------------------------------------------------------
+     Reste du responsive — inchangé
+     ---------------------------------------------------------- */
   .page-header__inner {
     grid-template-columns: 1fr;
     gap: var(--sp-8);
@@ -3314,6 +3357,26 @@
   .page-hero__typewriter { font-size: 0.9rem; }
   .page-hero__desc { font-size: 0.9rem; }
 
+  /* Photo encore plus compacte sur petit écran */
+  .photo-frame {
+    width: min(300px, 88vw);
+  }
+  .photo-frame__img {
+    max-height: 400px;
+  }
+  .photo-card--status {
+    left: var(--sp-2);
+    bottom: var(--sp-3);
+    transform: scale(0.85);
+    transform-origin: bottom left;
+  }
+  .photo-card--exp {
+    right: var(--sp-2);
+    top: var(--sp-3);
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+
   .slogan-banner__text { font-size: 0.95rem; }
   .slogan-banner__quote { font-size: 1.2rem; }
 
@@ -3378,9 +3441,6 @@
 
   .legal-content h2 { font-size: var(--text-xl); }
   .legal-info strong { display: block; min-width: auto; margin-bottom: 2px; }
-
-  .photo-card--status { left: 0; bottom: 0; transform: scale(0.9); }
-  .photo-card--exp { right: 0; top: 0; transform: scale(0.9); }
 
   .carousel__arrow { width: 34px; height: 34px; }
   .carousel__dots { bottom: var(--sp-3); }
@@ -3473,6 +3533,7 @@
     color: #666;
   }
 }
+
 /* ============================================================
    8. ESPACE ADMIN
    Activé par admin/layout.tsx via body[data-admin="true"].
